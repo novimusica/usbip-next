@@ -25,8 +25,8 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 PWD       := $(shell pwd)
 
 modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) LDDINC=$(PWD)/../include modules \
-		C=1 CF=-D__CHECK_ENDIAN__
+	$(MAKE) -C $(KERNELDIR) M=$(PWD) LDDINC=$(PWD)/../include modules
+#		C=1 CF=-D__CHECK_ENDIAN__
 
 all:
 	@for mod in $(MODULES) ; do \
