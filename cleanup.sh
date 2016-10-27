@@ -15,13 +15,19 @@ DIR_TOOL=$DIR_TEST/tools/usb/usbip
 DIR_EX=$DIR_TEST/tools/usb/usbip/api-example
 DIR_LIBUSB_TOOL=$DIR_TEST/tools/usb/usbip/libusb
 KERNEL=`uname -r`
-DIR_KERNEL=/lib/modules/$KERNEL/build
+DIR_KERN_INC=/lib/modules/$KERNEL/build/include
+DIR_KERN_MOD=/lib/modules/$KERNEL/kernel/drivers/usb/usbip
+DIR_UAPI_INC=/usr/include/linux
 
-sudo rm -f $DIR_KERNEL/include/uapi/linux/usbip_ux.h
+sudo rm -f $DIR_KERN_INC/uapi/linux/usbip_ux.h
+sudo rm -f $DIR_UAPI_INC/usbip_ux.h
+sudo rm -f $DIR_UAPI_INC/usbip_api.h
 
 pushd .
 cd $DIR_DRV
 make clean
+sudo rm $DIR_KERN_MOD/*.ko
+sudo depmod -a
 popd
 
 if [ -e $DIR_EX ]; then
