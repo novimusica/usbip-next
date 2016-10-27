@@ -1,0 +1,183 @@
+.TH USBIP "8" "February 2009" "usbip" "System Administration Utilities"
+.SH NAME
+usbip \- manage USB/IP devices
+.SH SYNOPSIS
+.B usbip
+[\fIoptions\fR] <\fIcommand\fR> <\fIargs\fR>
+
+.SH DESCRIPTION
+On a USB/IP device side computer,
+lists local devices, makes a device importable, makes not importable,
+connects a device and disconnects a device.
+
+On a USB/IP application side computer,
+lists devices importable from a remote computer, attaches a remote device and detaches an attached device.
+
+.SH OPTIONS
+.HP
+\fB\-d\fR, \fB\-\-debug\fR
+.IP
+Print debugging information.
+.PP
+
+.HP
+\fB\-l\fR, \fB\-\-log\fR
+.IP
+Log to syslog.
+.PP
+
+.HP
+\fB\-tPORT\fR, \fB\-\-tcp-port PORT\fR
+.IP
+TCP port number used by remote usbip daemon. Default is 3240.
+.PP
+
+.SH COMMANDS
+.HP
+\fBversion\fR
+.IP
+Show version and exit.
+.PP
+
+.HP
+\fBhelp\fR [\fIcommand\fR]
+.IP
+Print the program help message, or help on a specific command, and
+then exit.
+.PP
+
+.HP
+\fBattach\fR \-\-remote <\fIhost\fR> \-\-busid <\fIbusid\fR>
+.IP
+Attach a importable USB device from remote computer.
+.PP
+
+.HP
+\fBdetach\fR \-\-port <\fIport\fR>
+.IP
+Detach an imported USB device.
+.PP
+
+.HP
+\fBconnect\fR \-\-remote <\fIhost\fR> \-\-busid <\fIbusid\fR> [\-\-device]
+.IP
+Connect a USB device to remote computer.
+.PP
+
+.HP
+\fBdisconnect\fR \-\-remote <\fIhost\fR> \-\-busid <\fIbusid\fR> [\-\-device]
+.IP
+Disconnect a USB device from remote computer.
+.PP
+
+.HP
+\fBbind\fR \-\-busid <\fIbusid\fR>
+.IP
+Make a USB device importable from remote computer.
+.PP
+
+.HP
+\fBunbind\fR \-\-busid <\fIbusid\fR>
+.IP
+Make a USB device not importable so it can be used by a local driver.
+.PP
+
+.HP
+\fBlist\fR \-\-remote <\fIhost\fR>
+.IP
+List importable USB devices from a remote computer.
+.PP
+
+.HP
+\fBlist\fR [\-\-parsable] \-\-local 
+.IP
+List local USB devices.
+.PP
+
+.HP
+\fBlist\fR [\-\-parsable] \-\-device 
+.IP
+List local USB devices with an alternate driver, e.g. vUDC.
+.PP
+
+.HP
+\fBport\fR
+.HP
+.IP
+List imported USB devices.
+.PP
+
+
+.SH ARGUMENTS
+.HP
+\fB\-rHOST\fR, \fB\-\-remote HOST\fR 
+.IP
+Remote host address.
+.PP
+
+.HP
+\fB\-bBUSID\fR, \fB\-\-busid BUSID\fR 
+.IP
+Bus ID of a device to be handled.
+.PP
+
+.HP
+\fB\-pPORT\fR, \fB\-\-port PORT\fR 
+.IP
+d.
+Port number of an imported device shown by port command.
+.PP
+
+.HP
+\fB\-l\fR, \fB\-\-local\fR
+.IP
+Target local devices.
+.PP
+
+.HP
+\fB\-p\fR, \fB\-\-parsable\fR
+.IP
+Parsable format.
+.PP
+
+.HP
+\fB\-d\fR, \fB\-\-device\fR
+.IP
+Run with with an alternate driver, e.g. vUDC.
+.PP
+
+
+.SH EXAMPLES
+
+dev: at a device side computer
+.br
+app: at an application side computer
+
+Attach a device from a remote computer
+    dev:# usbip list
+        - List local USB devices.
+    dev:# usbip bind --busid 1-2
+        - Make a USB device importable from a remote computer.
+    app:# usbip list --remote 172.1.2.3
+        - List importable USB devices on the computer.
+    app:# usbip attach --remote 172.1.2.3 --busid 1-2
+        - Import a remote USB device.
+    app:# usbip port
+        - List imported USB devices.
+    app:# usbip detach --port 0
+        - Detach the USB device.
+    dev:# usbip unbind --busid 1-2
+        - Make a USB device not importable, then release to local.
+
+Connect a device to a remote computer
+    dev:# usbip list
+        - List local USB devices.
+    dev:# usbip connect --remote 172.4.5.6 --busid 1-2
+        - Export a USB device to a remote computer.
+    dev:# usbip disconnect --remote 172.4.5.6 --busid 1-2
+        - Unxport a USB device from a remote computer.
+
+
+.SH "SEE ALSO"
+\fBusbipd\fP\fB(8)\fB\fP
+\fBusbipa\fP\fB(8)\fB\fP

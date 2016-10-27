@@ -1,0 +1,89 @@
+.TH USBIP "8" "June 2015" "usbip_libusb" "System Administration Utilities"
+.SH NAME
+usbipd_libusb \- USB/IP device side daemon
+.SH SYNOPSIS
+.B usbipd_libusb
+[\fIoptions\fR]
+
+.SH DESCRIPTION
+.B usbipd_libusb
+runs on a divice side computer and provides USB/IP access from remote computers.
+
+To make devices accessible from remote computers, they must be made importable using \fBusbip_libusb bind\fR.
+
+This is an alternate of usbipd with libusb instead of native linux USB/IP drivers.
+
+.SH OPTIONS
+.HP
+\fB\-4\fR, \fB\-\-ipv4\fR
+.IP
+Bind to IPv4. Default is both.
+.PP
+
+.HP
+\fB\-6\fR, \fB\-\-ipv6\fR
+.IP
+Bind to IPv6. Default is both.
+.PP
+
+.HP
+\fB\-D\fR, \fB\-\-daemon\fR
+.IP
+Run as a daemon process.
+.PP
+
+.HP
+\fB\-d\fR, \fB\-\-debug\fR
+.IP
+Print debugging information.
+.PP
+
+.HP
+\fB\-PFILE\fR, \fB\-\-pid FILE\fR
+.IP
+Write process id to FILE.
+.br
+If no FILE specified, use /var/run/usbipd.pid
+.PP
+
+\fB\-tPORT\fR, \fB\-\-tcp\-port PORT\fR
+.IP
+Listen on TCP/IP port PORT. Default is 3240.
+.PP
+
+\fB\-h\fR, \fB\-\-help\fR
+.IP
+Print the program help message and exit.
+.PP
+
+.HP
+\fB\-v\fR, \fB\-\-version\fR
+.IP
+Show version.
+.PP
+
+.SH LIMITATIONS
+
+.B usbipd
+offers no authentication or authorization for USB/IP. Any
+USB/IP client can connect and use exported devices.
+
+.SH EXAMPLES
+
+    dev:# usbipd_libusb -D
+        - Start usbip daemon.
+
+    dev:# usbip_libusb list --local
+        - List driver assignments for usb devices.
+
+    dev:# usbip_libusb bind --busid=1-2
+        - Bind usbip-host.ko to the device of busid 1-2.
+        - USB device 1-2 is now importable from other computer!
+
+    dev:# usbip_libusb unbind --busid=1-2
+        - Unind usbip-host.ko from the device of busid 1-2.
+        - USB device 1-2 is not importable from other computer.
+
+.SH "SEE ALSO"
+\fBusbip_libusb\fP\fB(8)\fB\fP
+\fBusbip\fP\fB(8)\fB\fP

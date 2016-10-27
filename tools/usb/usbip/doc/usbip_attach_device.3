@@ -1,0 +1,69 @@
+.\"
+.\" Copyright (C) 2016 Nobuo Iwata
+.\"
+.\" This program is free software: you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation, either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program. If not, see <http://www.gnu.org/licenses/>.
+.\"
+.TH USBIP 3 2016-02-01 "" "Linux Programmer's Manual"
+.SH NAME
+usbip_attach_device, usbip_detach_port, usbip_bind_device, usbip_unbind_device,
+usbip_list_imported_devices, usbip_list_importable_devices,
+usbip_list_importable_devices, usbip_list_local_devices,
+usbip_connect_device, usbip_disconnect_device \- USB/IP command functions
+.SH SYNOPSIS
+.nf
+.B #include <linux/usbip_api.h>
+.sp
+.BI "int usbip_attach_device(const char *" host ", const char *" tcp-port ","
+.BI "                        const char *" busid ");"
+.sp
+.BI "int usbip_detach_port(const char *" port ");"
+.sp
+.BI "int usbip_bind_device(const char *" busid ");"
+.sp
+.BI "int usbip_unbind_device(const char *" busid ");"
+.sp
+.BI "int usbip_list_imported_devices(void);"
+.sp
+.BI "int usbip_list_importable_devices(const char *" host ",
+.BI "                                  const char *" tcp-port ");"
+.sp
+.BI "int usbip_list_local_devices(int parsable);"
+.sp
+.BI "int usbip_connect_device(const char *" host ", const char *" tcp-port ","
+.BI "                         const char *" busid ");"
+.sp
+.BI "usbip_disconnect_device(const char *" host ", const char *" tcp-port ","
+.BI "                        const char *" busid ");"
+.ad b
+.SH DESCRIPTION
+These functions adds an application protocol
+to each command supported by \fBusbip(8)\fP
+in combination with \fBusbip_conn_init(3)\fP and \fBusbip_sock_init(3)\fP.
+.PP
+Here,
+.BR usbip_list_imported_devices()
+is corresponding to \fBport\fP command,
+.BR usbip_list_importable_devices()
+and
+.BR usbip_list_devices()
+are corresponding to \fBlist\fP command
+with remote or local option respectively.
+.SH RETURN VALUE
+0 on success otherwise none zero.
+.SH "SEE ALSO"
+.BR usbip (8)
+.BR usbip_conn_init (3)
+.BR usbip_sock_init (3)
+.BR usbip_recv_pdu (3)
+.BR usbip_set_use_debug (3)

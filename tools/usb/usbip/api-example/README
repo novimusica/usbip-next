@@ -1,0 +1,13 @@
+A simple example for USB/IP API using IPv4 socket.
+
+1) Another samples
+
+USB over WebSocket using libwebsockets and Poco C++ are in github.
+
+	https://github.com/novimusica/
+
+2) Build with libusb
+
+	./configure --with-libusb
+
+[EOF]

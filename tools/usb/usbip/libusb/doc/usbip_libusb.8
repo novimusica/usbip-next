@@ -1,0 +1,149 @@
+.TH USBIP "8" "June 2015" "usbip_libusb" "System Administration Utilities"
+.SH NAME
+usbip_libusb \- manage USB/IP devices
+.SH SYNOPSIS
+.B usbip_libusb
+[\fIoptions\fR] <\fIcommand\fR> <\fIargs\fR>
+
+.SH DESCRIPTION
+On a USB/IP device side computer,
+lists local devices, makes a device importable, makes not importable,
+connects a device and disconnects a device.
+
+This commnad is an alternate of usbip command with libusb instead of native linux USB/IP drivers.
+
+.SH OPTIONS
+.HP
+\fB\-\-debug\fR
+.IP
+Print debugging information.
+.PP
+
+.HP
+\fB\-\-log\fR
+.IP
+Log to syslog.
+.PP
+
+.HP
+\fB\-\-tcp-port PORT\fR
+.IP
+TCP port number used by remote usbip daemon. Default is 3240.
+.PP
+
+.SH COMMANDS
+.HP
+\fBversion\fR
+.IP
+Show version and exit.
+.PP
+
+.HP
+\fBhelp\fR [\fIcommand\fR]
+.IP
+Print the program help message, or help on a specific command, and
+then exit.
+.PP
+
+.HP
+\fBconnect\fR \-\-remote=<\fIhost\fR> \-\-busid=<\fIbusid\fR>
+.IP
+Connect a USB device to remote computer.
+.PP
+
+.HP
+\fBdisconnect\fR \-\-remote=<\fIhost\fR> \-\-busid=<\fIbusid\fR>
+.IP
+Disconnect a USB device from remote computer.
+.PP
+
+.HP
+\fBbind\fR \-\-busid=<\fIbusid\fR>
+.IP
+Make a USB device importable from remote computer.
+.PP
+
+.HP
+\fBunbind\fR \-\-busid=<\fIbusid\fR>
+.IP
+Make a USB device not importable so it can be used by a local driver.
+.PP
+
+.HP
+\fBlist\fR \-\-local
+.IP
+List local USB devices.
+.PP
+
+.HP
+\fBport\fR
+.IP
+List imported USB devices.
+.PP
+
+
+.SH ARGUMENTS
+.HP
+\fB\-rHOST\fR, \fB\-\-remote HOST\fR
+.IP
+Remote host address.
+.PP
+
+.HP
+\fB\-bBUSID\fR, \fB\-\-busid BUSID\fR
+.IP
+Bus ID of a device to be handled.
+.PP
+
+.HP
+\fB\-l\fR, \fB\-\-local\fR
+.IP
+Target local devices.
+.PP
+
+.HP
+\fB\-p\fR, \fB\-\-parsable\fR
+.IP
+Parsable format.
+.PP
+
+
+.SH EXAMPLES
+
+dev: at a device side computer
+.br
+app: at an application side computer
+
+Attach a device from a remote computer
+    dev:# usbipd_libusb
+        - Start daemon.
+    dev:# usbip_libusb list
+        - List local USB devices.
+    dev:# usbip_libusb bind --busid=1-2
+        - Make a USB device importable from a remote computer.
+    app:# usbip list --remote=172.1.2.3
+        - List importable USB devices on the computer.
+    app:# usbip attach --remote=172.1.2.3 --busid=1-2
+        - Import a remote USB device.
+    app:# usbip port
+        - List imported USB devices.
+    app:# usbip detach --port=0
+        - Detach the USB device.
+    dev:# usbip_libusb unbind --busid=1-2
+        - Make a USB device not importable, then release to local.
+
+Connect a device to a remote computer
+    app:# usbipa
+        - Start daemon.
+    dev:# usbip_libusb list
+        - List local USB devices.
+    dev:# usbip_libusb connect --remote=172.4.5.6 --busid=1-2
+        - Export a USB device to a remote computer.
+    dev:# usbip_libusb disconnect --remote=172.4.5.6 --busid=1-2
+        - Unxport a USB device from a remote computer.
+
+
+.SH "SEE ALSO"
+\fBusbipd_libusb\fP\fB(8)\fB\fP
+\fBusbip\fP\fB(8)\fB\fP
+\fBusbipa\fP\fB(8)\fB\fP

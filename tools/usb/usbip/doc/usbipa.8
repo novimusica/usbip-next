@@ -1,0 +1,78 @@
+.TH USBIP "8" "March 2015" "usbip" "System Administration Utilities"
+.SH NAME
+usbipa \- USB/IP application side daemon
+.SH SYNOPSIS
+.B usbipa
+[\fIoptions\fR]
+
+.SH DESCRIPTION
+.B usbipa
+runs on an application side computer and make remote USB devices connected using \fBusbip connect\fR at remote computers accessible on the application side computer.
+
+.SH OPTIONS
+.HP
+\fB\-4\fR, \fB\-\-ipv4\fR
+.IP
+Bind to IPv4. Default is both.
+.PP
+
+.HP
+\fB\-6\fR, \fB\-\-ipv6\fR
+.IP
+Bind to IPv6. Default is both.
+.PP
+
+.HP
+\fB\-D\fR, \fB\-\-daemon\fR
+.IP
+Run as a daemon process.
+.PP
+
+.HP
+\fB\-d\fR, \fB\-\-debug\fR
+.IP
+Print debugging information.
+.PP
+
+.HP
+\fB\-PFILE\fR, \fB\-\-pid FILE\fR
+.IP
+Write process id to FILE.
+.br
+If no FILE specified, use /var/run/usbipd.pid
+.PP
+
+.HP
+\fB\-tPORT\fR, \fB\-\-tcp\-port PORT\fR
+.IP
+Listen on TCP/IP port PORT. Default is 3240.
+.PP
+
+.HP
+\fB\-h\fR, \fB\-\-help\fR
+.IP
+Print the program help message and exit.
+.PP
+
+.HP
+\fB\-v\fR, \fB\-\-version\fR
+.IP
+Show version.
+.PP
+
+.SH LIMITATIONS
+
+.B usbipa
+offers no authentication or authorization for USB/IP. Any
+USB/IP client can connect and use exported devices.
+
+.SH EXAMPLES
+
+    app:# modprobe vhci-hcd
+
+    app:# usbipa -D
+        - Start usbip daemon.
+
+.SH "SEE ALSO"
+\fBusbip\fP\fB(8)\fB\fP
+\fBusbipd\fP\fB(8)\fB\fP

@@ -1,0 +1,91 @@
+.\"
+.\" Copyright (C) 2016 Nobuo Iwata
+.\"
+.\" This program is free software: you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation, either version 2 of the License, or
+.\" (at your option) any later version.
+.\"
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program. If not, see <http://www.gnu.org/licenses/>.
+.\"
+.TH USBIP 3 2016-02-01 "" "Linux Programmer's Manual"
+.SH NAME
+usbip_conn_init, usbip_sock_init \- USB/IP setup functions
+.SH SYNOPSIS
+.nf
+.B #include <linux/usbip_api.h>
+.sp
+.BI "void usbip_conn_init("
+.BI "               struct usbip_sock *(*" open ")(const char *, const char *,
+.BI "                                          void *),"
+.BI "               void (*" close ")(struct usbip_sock *),
+.BI "               void *opt);"
+.sp
+.BI "void usbip_sock_init("
+.BI "               struct usbip_sock *" sock ", int " fd ", void *" arg ","
+.BI "               int (*" send ")(void *, void *, int),"
+.BI "               int (*" recv ")(void *, void *, int, int),"
+.BI "               void (*shutdown)(void *));"
+.ad b
+.SH DESCRIPTION
+These functions adds an application protocols to USB/IP daemon and command.
+.PP
+.BR usbip_conn_init()
+sets connection open and close callback invoked in command APIs:
+\fBusbip_attach_device()\fP,
+\fBusbip_list_importable_devices()\fP,
+\fBusbip_connect_device()\fP and
+\fBusbip_disconnect_device()\fP.
+The \fIopen\fP callback will be called with host and port string as arguments.
+\fIopt\fP will be passed to \fIopen\fP as the third argument.
+\fIopen\fP should return \fIstruct_sock\fP which are filled with
+\fBusbip_sock_init()\fP.
+.PP
+The \fIclose\fP callbask will be called to deallocate
+.IR struct_sock .
+.PP
+.BR usbip_sock_init()
+fills
+.IR struct_sock
+with \fIfd\fP, \fIarg\fP and callbacks.
+\fIfd\fP is used for default socket functions
+which are used when NULL is specified for the callbacks
+invoked in both command and daemon APIs.
+The \fIarg\fP is a pointer to any data
+which will be passed as the first argument to the callbacks.
+.PP
+\fIsend\fP
+will be called with pointer to buffer which includes data to be sent
+and bytes of data to send.
+It should return number of bytes sent or -1 on error.
+.PP
+\fIrecv\fP
+will be called with pointer to a buffer to store received data,
+buffer length and a flag.
+The last flag argument of \fIrecv\fP is a boolean value
+which denote wait all bytes or not.
+It should return number of bytes received or -1 on error.
+.PP
+\fIshutdown\fP is called to disconnect.
+.PP
+.SH "SEE ALSO"
+.BR usbip (8)
+.BR usbipd (8)
+.BR usbipa (8)
+.BR usbip_recv_pdu (3)
+.BR usbip_attach_device (3)
+.BR usbip_detach_port (3)
+.BR usbip_bind_device (3)
+.BR usbip_unbind_device (3)
+.BR usbip_list_imported_devices (3)
+.BR usbip_list_importable_devices (3)
+.BR usbip_list_devices (3)
+.BR usbip_connect_device (3)
+.BR usbip_disconnect_device (3)
+.BR usbip_set_use_debug (3)

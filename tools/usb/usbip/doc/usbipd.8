@@ -1,0 +1,97 @@
+.TH USBIP "8" "February 2009" "usbip" "System Administration Utilities"
+.SH NAME
+usbipd \- USB/IP device side daemon
+.SH SYNOPSIS
+.B usbipd
+[\fIoptions\fR]
+
+.SH DESCRIPTION
+.B usbipd
+runs on a divice side computer and provides USB/IP access from remote computers.
+
+To make devices accessible from remote computers, they must be made importable using \fBusbip bind\fR.
+
+.SH OPTIONS
+.HP
+\fB\-4\fR, \fB\-\-ipv4\fR
+.IP
+Bind to IPv4. Default is both.
+.PP
+
+.HP
+\fB\-6\fR, \fB\-\-ipv6\fR
+.IP
+Bind to IPv6. Default is both.
+.PP
+
+.HP
+\fB\-D\fR, \fB\-\-daemon\fR
+.IP
+Run as a daemon process.
+.PP
+
+.HP
+\fB\-d\fR, \fB\-\-debug\fR
+.IP
+Print debugging information.
+.PP
+
+.HP
+\fB\-PFILE\fR, \fB\-\-pid FILE\fR
+.IP
+Write process id to FILE.
+.br
+If no FILE specified, use /var/run/usbipd.pid
+.PP
+
+.HP
+\fB\-tPORT\fR, \fB\-\-tcp\-port PORT\fR
+.IP
+Listen on TCP/IP port PORT. Default is 3240.
+.PP
+
+.HP
+\fB\-e\fR, \fB\-\-device\fR
+.IP
+Run with with an alternate driver, e.g. vUDC.
+.PP
+
+.HP
+\fB\-h\fR, \fB\-\-help\fR
+.IP
+Print the program help message and exit.
+.PP
+
+.HP
+\fB\-v\fR, \fB\-\-version\fR
+.IP
+Show version.
+.PP
+
+.SH LIMITATIONS
+
+.B usbipd
+offers no authentication or authorization for USB/IP. Any
+USB/IP client can connect and use exported devices.
+
+.SH EXAMPLES
+
+    dev:# modprobe usbip-host
+
+    dev:# usbipd -D
+        - Start usbip daemon.
+
+    dev:# usbip list --local
+        - List driver assignments for usb devices.
+
+    dev:# usbip bind --busid 1-2
+        - Bind usbip-host.ko to the device of busid 1-2.
+        - USB device 1-2 is now importable from other computer!
+
+    dev:# usbip unbind --busid 1-2
+        - Unind usbip-host.ko from the device of busid 1-2.
+        - USB device 1-2 is not importable from other computer.
+
+.SH "SEE ALSO"
+\fBusbip\fP\fB(8)\fB\fP
+\fBusbipa\fP\fB(8)\fB\fP

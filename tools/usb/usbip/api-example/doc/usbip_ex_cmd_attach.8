@@ -1,0 +1,28 @@
+.TH USBIP "8" "May 2016" "usbip" "System Administration Utilities"
+.SH NAME
+usbip_ex_cmd_attach \- attaches remote USB device.
+.SH SYNOPSIS
+.B usbip_ex_cmd_attach
+<\fIremote-addr\fR> <\fIbus-id\fR>
+
+.SH DESCRIPTION
+A USB/IP API example. Attaches a remote device which is made importable on
+remote and listed by \fBlist remote\fR command.
+
+.SH OPTIONS
+.HP
+\fIremote-addr\fR
+.IP
+IPv4 address of a remote machine.
+.PP
+
+.HP
+\fIbus-id\fR
+.IP
+Bus ID of a remote device to be importable.
+.PP
+
+.SH "SEE ALSO"
+\fBusbip_ex_cmd_list_local\fP\fB(8)\fB\fP
+\fBusbip_ex_cmd_bind\fP\fB(8)\fB\fP
+\fBusbip_ex_cmd_list_remote\fP\fB(8)\fB\fP
