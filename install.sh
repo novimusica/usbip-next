@@ -1,5 +1,15 @@
 #!/bin/sh
 
+CMD=`basename $0`
+WHICH=$1
+
+if [ "$WHICH" != "all" -a
+	"$WHICH" != "driver" -a
+	"$WHICH" != "libusb" ]; then
+	echo "usage: $CMD [all|driver|libusb]"
+	exit 0
+fi
+
 function mktool() {
 if [ ! -e configure ]; then
 	if [ ! -x ./autogen.sh ]; then
@@ -36,6 +46,7 @@ sudo cp $DIR_TEST/include/uapi/linux/usbip_ux.h $DIR_UAPI_INC/
 
 sudo cp $DIR_TEST/include/uapi/linux/usbip_api.h $DIR_UAPI_INC/
 
+if [ "$WHICH" = "all" -o "$WHICH" = "driver" ]; then
 sudo mkdir -p $DIR_KERN_MOD
 
 pushd .
@@ -49,17 +60,20 @@ pushd .
 cd $DIR_TOOL
 mktool
 popd
+fi
 
+if [ "$WHICH" = "all" -o "$WHICH" = "libusb" ]; then
 if [ -e $DIR_LIBUSB_TOOL ]; then
 pushd .
 cd $DIR_LIBUSB_TOOL
 mktool "--with-dummy-driver"
 popd
 fi
-
-if [ -e $DIR_EX ]; then
-pushd .
-cd $DIR_EX
-mktool
-popd
 fi
+
+# if [ -e $DIR_EX ]; then
+# pushd .
+# cd $DIR_EX
+# mktool
+# popd
+# fi
