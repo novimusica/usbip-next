@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,11 +17,23 @@
 
 #include "usbip_common.h"
 #include "usbip_host_common.h"
+#include "usbip_host_driver.h"
 #include "usbip_device_driver.h"
 
-void usbip_update_driver(void)
+int usbip_hdriver_set(int type)
 {
-	usbip_hdriver = &device_driver;
+	switch (type) {
+	case USBIP_HDRIVER_TYPE_HOST:
+		usbip_hdriver = &host_driver;
+		break;
+	case USBIP_HDRIVER_TYPE_DEVICE:
+		usbip_hdriver = &device_driver;
+		break;
+	default:
+		err("unknown driver type to set %d", type);
+		return -1;
+	}
+	return 0;
 }
 
 int usbip_bind_device(const char *busid)

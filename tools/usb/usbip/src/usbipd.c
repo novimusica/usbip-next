@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
  * Copyright (C) 2015-2016 Samsung Electronics
  *               Igor Kotrasinski <i.kotrasinsk@samsung.com>
  *               Krzysztof Opasiak <k.opasiak@samsung.com>
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+#ifdef USBIP_AS_LIBRARY
+#include "usbipd.h"
+#include "usbip_network.h"
+#else
 
 #ifdef USBIP_WITH_LIBUSB
 #include "usbip_sock.h"
@@ -68,14 +73,14 @@ static const char usbipd_help_string[] =
 	"\n"
 	"	-6, --ipv6\n"
 	"		Bind to IPv6. Default is both.\n"
-	"\n"
 #ifndef USBIP_DAEMON_APP
+	"\n"
 	"	-e, --device\n"
 	"		Run in device mode.\n"
 	"		Rather than drive an attached device, create\n"
 	"		a virtual UDC to bind gadgets to.\n"
-	"\n"
 #endif
+	"\n"
 	"	-D, --daemon\n"
 	"		Run as a daemon process.\n"
 	"\n"
@@ -105,13 +110,67 @@ static void usbipd_help(void)
 	printf(usbipd_help_string, usbip_progname, usbip_default_pid_file);
 }
 
+#endif /* !USBIP_AS_LIBRARY */
+
+int usbipd_driver_open(void)
+{
+	if (usbipd_driver_ops.open)
+		return (*(usbipd_driver_ops.open))();
+	return 0;
+}
+
+void usbipd_driver_close(void)
+{
+	if (usbipd_driver_ops.close)
+		(*(usbipd_driver_ops.close))();
+}
+
+int usbipd_recv_pdu(struct usbip_sock *sock, const char *host, const char *port)
+{
+	uint16_t code = OP_UNSPEC;
+	int ret;
+	struct usbipd_recv_pdu_op *op;
+
+	ret = usbip_net_recv_op_common(sock, &code);
+	if (ret < 0) {
+		dbg("could not receive opcode: %#0x", code);
+		return -1;
+	}
+
+	info("received request: %#0x(%d)", code, sock->fd);
+	for (op = usbipd_recv_pdu_ops; op->code != OP_UNSPEC; op++) {
+		if (op->code == code) {
+			if (op->proc)
+				ret = (*(op->proc))(sock, host, port);
+			else {
+				err("received an unsupported opcode: %#0x",
+				    code);
+				ret = -1;
+			}
+			break;
+		}
+	}
+	if (op->code == OP_UNSPEC) {
+		err("received an unknown opcode: %#0x", code);
+		ret = -1;
+	}
+
+	if (ret == 0)
+		info("request %#0x(%d): complete", code, sock->fd);
+	else
+		info("request %#0x(%d): failed", code, sock->fd);
+
+	return ret;
+}
+
+#ifndef USBIP_AS_LIBRARY
 #ifdef HAVE_LIBWRAP
 static int tcpd_auth(int connfd)
 {
 	struct request_info request;
 	int rc;
 
-	request_init(&request, RQ_DAEMON, PROGNAME, RQ_FILE, connfd, 0);
+	request_init(&request, RQ_DAEMON, usbip_progname, RQ_FILE, connfd, 0);
 	fromhost(&request);
 	rc = hosts_access(&request);
 	if (rc == 0)
@@ -121,7 +180,8 @@ static int tcpd_auth(int connfd)
 }
 #endif
 
-static int do_accept(int listenfd, char *host, char *port)
+static int do_accept(int listenfd, char *host, int host_len,
+				   char *port, int port_len)
 {
 	int connfd;
 	struct sockaddr_storage ss;
@@ -136,8 +196,8 @@ static int do_accept(int listenfd, char *host, char *port)
 		return -1;
 	}
 
-	rc = getnameinfo((struct sockaddr *)&ss, len, host, NI_MAXHOST,
-			 port, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
+	rc = getnameinfo((struct sockaddr *)&ss, len, host, host_len,
+			 port, port_len, NI_NUMERICHOST | NI_NUMERICSERV);
 	if (rc)
 		err("getnameinfo: %s", usbip_net_gai_strerror(rc));
 
@@ -157,30 +217,7 @@ static int do_accept(int listenfd, char *host, char *port)
 	return connfd;
 }
 
-#ifndef USBIP_OS_NO_FORK
-int process_request(int listenfd)
-{
-	pid_t childpid;
-	int connfd;
-	struct usbip_sock sock;
-	char host[NI_MAXHOST], port[NI_MAXSERV];
-
-	connfd = do_accept(listenfd, host, port);
-	if (connfd < 0)
-		return -1;
-	childpid = fork();
-	if (childpid == 0) {
-		socket_close(listenfd);
-
-		usbip_sock_init(&sock, connfd, NULL, NULL, NULL, NULL);
-		usbip_recv_pdu(&sock, host, port);
-		socket_close(connfd);
-		exit(0);
-	}
-	socket_close(connfd);
-	return 0;
-}
-#else
+#ifdef USBIP_OS_NO_FORK
 struct request_data {
 	int connfd;
 	char host[NI_MAXHOST], port[NI_MAXSERV];
@@ -192,7 +229,7 @@ static void *__process_request(void *arg)
 	struct usbip_sock sock;
 
 	usbip_sock_init(&sock, data->connfd, NULL, NULL, NULL, NULL);
-	usbip_recv_pdu(&sock, data->host, data->port);
+	usbipd_recv_pdu(&sock, data->host, data->port);
 	socket_close(data->connfd);
 	free(data);
 	pthread_exit();
@@ -207,7 +244,8 @@ int process_request(int listenfd)
 	if (!data)
 		return -1;
 
-	data->connfd = do_accept(listenfd, data->host, data->port);
+	data->connfd = do_accept(listenfd, data->host, sizeof(data->host),
+					   data->port, sizeof(data->port));
 	if (data->connfd < 0) {
 		free(data);
 		return -1;
@@ -216,6 +254,28 @@ int process_request(int listenfd)
 		free(data);
 		return -1;
 	}
+	return 0;
+}
+#else
+int process_request(int listenfd)
+{
+	pid_t childpid;
+	int connfd;
+	struct usbip_sock sock;
+	char host[NI_MAXHOST], port[NI_MAXSERV];
+
+	connfd = do_accept(listenfd, host, NI_MAXHOST, port, NI_MAXSERV);
+	if (connfd < 0)
+		return -1;
+	childpid = fork();
+	if (childpid == 0) {
+		socket_close(listenfd);
+		usbip_sock_init(&sock, connfd, NULL, NULL, NULL, NULL);
+		usbipd_recv_pdu(&sock, host, port);
+		socket_close(connfd);
+		exit(0);
+	}
+	socket_close(connfd);
 	return 0;
 }
 #endif /* !USBIP_OS_NO_FORK */
@@ -262,13 +322,6 @@ static int listen_all_addrinfo(struct addrinfo *ai_head, int sockfdlist[],
 		/* We use seperate sockets for IPv4 and IPv6
 		 * (see do_standalone_mode()) */
 		usbip_net_set_v6only(sock);
-
-		if (sock >= FD_SETSIZE) {
-			err("FD_SETSIZE: %s: sock=%d, max=%d",
-			    ai_buf, sock, FD_SETSIZE);
-			socket_close(sock);
-			continue;
-		}
 
 		ret = bind(sock, ai->ai_addr, ai->ai_addrlen);
 		if (ret < 0) {
@@ -370,15 +423,14 @@ static int do_standalone_mode(int daemonize, int ipv4, int ipv6)
 	struct timespec timeout;
 	sigset_t sigmask;
 
-	if (usbip_open_driver())
-		return -1;
+	if (usbipd_driver_open())
+		goto err_out;
 
 	if (daemonize) {
 #ifndef USBIP_OS_NO_DAEMON
 		if (daemon(0, 0) < 0) {
 			err("daemonizing failed: %s", strerror(errno));
-			usbip_close_driver();
-			return -1;
+			goto err_driver_close;
 		}
 		umask(0);
 		usbip_use_syslog = 1;
@@ -387,7 +439,7 @@ static int do_standalone_mode(int daemonize, int ipv4, int ipv6)
 	set_signal();
 	write_pid_file();
 
-	info("starting " PROGNAME " (%s)", usbip_version_string);
+	info("starting %s (%s)", usbip_progname, usbip_version_string);
 
 	socket_start();
 
@@ -404,19 +456,15 @@ static int do_standalone_mode(int daemonize, int ipv4, int ipv6)
 		family = AF_INET6;
 
 	ai_head = do_getaddrinfo(NULL, family);
-	if (!ai_head) {
-		usbip_close_driver();
-		socket_stop();
-		return -1;
-	}
+	if (!ai_head)
+		goto err_socket_stop;
+
 	nsockfd = listen_all_addrinfo(ai_head, sockfdlist,
 		sizeof(sockfdlist) / sizeof(*sockfdlist));
 	freeaddrinfo(ai_head);
 	if (nsockfd <= 0) {
 		err("failed to open a listening socket");
-		usbip_close_driver();
-		socket_stop();
-		return -1;
+		goto err_socket_stop;
 	}
 
 	dbg("listening on %d address%s", nsockfd, (nsockfd == 1) ? "" : "es");
@@ -454,12 +502,19 @@ static int do_standalone_mode(int daemonize, int ipv4, int ipv6)
 		}
 	}
 
-	info("shutting down " PROGNAME);
+	info("shutting down %s", usbip_progname);
 	free(fds);
-	usbip_close_driver();
+	usbipd_driver_close();
 	socket_stop();
 
 	return 0;
+
+err_socket_stop:
+	socket_stop();
+err_driver_close:
+	usbipd_driver_close();
+err_out:
+	return -1;
 }
 
 int main(int argc, char *argv[])
@@ -503,10 +558,11 @@ int main(int argc, char *argv[])
 #endif
 
 	cmd = cmd_standalone_mode;
+
 	for (;;) {
 		opt = getopt_long(argc, argv, "46Dd"
 #ifdef USBIP_WITH_LIBUSB
-				  "f:"
+				  "f"
 #endif
 #ifndef USBIP_DAEMON_APP
 				  "e"
@@ -548,7 +604,7 @@ int main(int argc, char *argv[])
 			break;
 #ifndef USBIP_DAEMON_APP
 		case 'e':
-			usbip_update_driver();
+			usbip_hdriver_set(USBIP_HDRIVER_TYPE_DEVICE);
 			break;
 #endif
 		case '?':
@@ -567,7 +623,7 @@ int main(int argc, char *argv[])
 		remove_pid_file();
 		break;
 	case cmd_version:
-		printf(PROGNAME " (%s)\n", usbip_version_string);
+		printf("%s (%s)\n", usbip_progname, usbip_version_string);
 		rc = 0;
 		break;
 	case cmd_help:
@@ -582,3 +638,4 @@ int main(int argc, char *argv[])
 err_out:
 	return (rc > -1 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
+#endif /* !USBIP_AS_LIBRARY */

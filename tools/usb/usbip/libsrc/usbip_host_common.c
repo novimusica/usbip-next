@@ -578,11 +578,6 @@ int usbip_generic_export_device(struct usbip_exported_device *edev,
 	return ret;
 }
 
-int usbip_generic_try_transfer_init(struct usbip_sock *sock)
-{
-	return usbip_ux_try_transfer_init(sock);
-}
-
 int usbip_generic_try_transfer(struct usbip_exported_device *edev,
 			       struct usbip_sock *sock)
 {
@@ -590,11 +585,6 @@ int usbip_generic_try_transfer(struct usbip_exported_device *edev,
 		return -1;
 
 	return usbip_ux_try_transfer(sock);
-}
-
-void usbip_generic_try_transfer_exit(struct usbip_sock *sock)
-{
-	usbip_ux_try_transfer_exit(sock);
 }
 
 int usbip_generic_has_transferred(void)

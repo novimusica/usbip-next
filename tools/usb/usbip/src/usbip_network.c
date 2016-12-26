@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -182,6 +182,29 @@ int usbip_net_send_op_common(struct usbip_sock *sock,
 	return 0;
 }
 
+struct op_common_error {
+	uint32_t	status;
+	const char	*str;
+};
+
+struct op_common_error op_common_errors[] = {
+	{ST_NA, "not available"},
+	{ST_NO_FREE_PORT, "no free port"},
+	{ST_DEVICE_NOT_FOUND, "device not found"},
+	{0, NULL}
+};
+
+static const char *op_common_strerror(uint32_t status)
+{
+	struct op_common_error *err;
+
+	for (err = op_common_errors; err->str != NULL; err++) {
+		if (err->status == status)
+			return err->str;
+	}
+	return "unknown error";
+}
+
 int usbip_net_recv_op_common(struct usbip_sock *sock, uint16_t *code)
 {
 	struct op_common op_common;
@@ -215,7 +238,8 @@ int usbip_net_recv_op_common(struct usbip_sock *sock, uint16_t *code)
 	}
 
 	if (op_common.status != ST_OK) {
-		dbg("request failed at peer: %d", op_common.status);
+		dbg("request failed at peer: %s",
+			op_common_strerror(op_common.status));
 		goto err;
 	}
 

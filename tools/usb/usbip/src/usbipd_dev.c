@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,31 +35,40 @@
 #include "usbip_host_driver.h"
 #include "usbip_common.h"
 #include "usbip_network.h"
+#include "usbipd.h"
 #include "list.h"
 
 char *usbip_progname = "usbipd";
 char *usbip_default_pid_file = "/var/run/usbipd";
 
-int usbip_open_driver(void)
+static int driver_open(void)
 {
 	return usbip_driver_open();
 }
 
-void usbip_close_driver(void)
+static void driver_close(void)
 {
 	usbip_driver_close();
 }
 
-static int recv_request_import(struct usbip_sock *sock)
+struct usbipd_driver_ops usbipd_driver_ops = {
+	driver_open,
+	driver_close,
+};
+
+static int recv_request_import(struct usbip_sock *sock,
+			       const char *host, const char *port)
 {
 	struct usbip_exported_devices edevs;
 	struct usbip_exported_device *edev;
 	struct op_import_request req;
-	struct op_common reply;
 	struct usbip_usb_device pdu_udev;
 	int found = 0;
 	int error = 0;
 	int rc;
+
+	(void)host;
+	(void)port;
 
 	rc = usbip_refresh_device_list(&edevs);
 	if (rc < 0) {
@@ -68,7 +77,6 @@ static int recv_request_import(struct usbip_sock *sock)
 	}
 
 	memset(&req, 0, sizeof(req));
-	memset(&reply, 0, sizeof(reply));
 
 	rc = usbip_net_recv(sock, &req, sizeof(req));
 	if (rc < 0) {
@@ -76,12 +84,6 @@ static int recv_request_import(struct usbip_sock *sock)
 		goto err_free_edevs;
 	}
 	PACK_OP_IMPORT_REQUEST(0, &req);
-
-	rc = usbip_try_transfer_init(sock);
-	if (rc < 0) {
-		err("transfer init");
-		goto err_free_edevs;
-	}
 
 	edev = usbip_get_device(&edevs, req.busid);
 	if (edev) {
@@ -103,12 +105,12 @@ static int recv_request_import(struct usbip_sock *sock)
 				      (!error ? ST_OK : ST_NA));
 	if (rc < 0) {
 		dbg("usbip_net_send_op_common failed: %#0x", OP_REP_IMPORT);
-		goto err_try_trx_exit;
+		goto err_free_edevs;
 	}
 
 	if (error) {
 		dbg("import request busid %s: failed", req.busid);
-		goto err_try_trx_exit;
+		goto err_free_edevs;
 	}
 
 	memcpy(&pdu_udev, &edev->udev, sizeof(pdu_udev));
@@ -117,7 +119,7 @@ static int recv_request_import(struct usbip_sock *sock)
 	rc = usbip_net_send(sock, &pdu_udev, sizeof(pdu_udev));
 	if (rc < 0) {
 		dbg("usbip_net_send failed: devinfo");
-		goto err_try_trx_exit;
+		goto err_free_edevs;
 	}
 
 	dbg("import request busid %s: complete", req.busid);
@@ -125,15 +127,12 @@ static int recv_request_import(struct usbip_sock *sock)
 	rc = usbip_try_transfer(edev, sock);
 	if (rc < 0) {
 		err("try transfer");
-		goto err_try_trx_exit;
+		goto err_free_edevs;
 	}
 
-	usbip_try_transfer_exit(sock);
 	usbip_free_device_list(&edevs);
 
 	return 0;
-err_try_trx_exit:
-	usbip_try_transfer_exit(sock);
 err_free_edevs:
 	usbip_free_device_list(&edevs);
 err_out:
@@ -157,7 +156,7 @@ static int send_reply_devlist(struct usbip_sock *sock)
 	}
 
 	reply.ndev = edevs.ndevs;
-	info("exportable devices: %d", reply.ndev);
+	info("importable devices: %d", reply.ndev);
 
 	rc = usbip_net_send_op_common(sock, OP_REP_DEVLIST, ST_OK);
 	if (rc < 0) {
@@ -207,22 +206,13 @@ err_out:
 	return -1;
 }
 
-static int recv_request_devlist(struct usbip_sock *sock)
+static int recv_request_devlist(struct usbip_sock *sock,
+				const char *host, const char *port)
 {
-#ifndef USBIP_OS_NO_EMPTY_STRUCT
-	struct op_devlist_request req;
-#endif
 	int rc;
 
-#ifndef USBIP_OS_NO_EMPTY_STRUCT
-	memset(&req, 0, sizeof(req));
-
-	rc = usbip_net_recv(sock, &req, sizeof(req));
-	if (rc < 0) {
-		dbg("usbip_net_recv failed: devlist request");
-		return -1;
-	}
-#endif
+	(void)host;
+	(void)port;
 
 	rc = send_reply_devlist(sock);
 	if (rc < 0) {
@@ -233,36 +223,10 @@ static int recv_request_devlist(struct usbip_sock *sock)
 	return 0;
 }
 
-int usbip_recv_pdu(struct usbip_sock *sock, const char *host, const char *port)
-{
-	uint16_t code = OP_UNSPEC;
-	int ret;
-
-	ret = usbip_net_recv_op_common(sock, &code);
-	if (ret < 0) {
-		dbg("could not receive opcode: %#0x", code);
-		return -1;
-	}
-
-	info("received request: %#0x(%d)", code, sock->fd);
-	switch (code) {
-	case OP_REQ_DEVLIST:
-		ret = recv_request_devlist(sock);
-		break;
-	case OP_REQ_IMPORT:
-		ret = recv_request_import(sock);
-		break;
-	case OP_REQ_DEVINFO:
-	case OP_REQ_CRYPKEY:
-	default:
-		err("received an unknown opcode: %#0x", code);
-		ret = -1;
-	}
-
-	if (ret == 0)
-		info("request %#0x(%s:%s): complete", code, host, port);
-	else
-		info("request %#0x(%s:%s): failed", code, host, port);
-
-	return ret;
-}
+struct usbipd_recv_pdu_op usbipd_recv_pdu_ops[] = {
+	{OP_REQ_DEVLIST, recv_request_devlist},
+	{OP_REQ_IMPORT, recv_request_import},
+	{OP_REQ_DEVINFO, NULL},
+	{OP_REQ_CRYPKEY, NULL},
+	{OP_UNSPEC, NULL}
+};

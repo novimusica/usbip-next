@@ -1,6 +1,6 @@
 PRELIMINARY DRAFT, MAY CONTAIN MISTAKES!
 28 Jun 2011
-MODIFIED FOR CONNECT AND DISCONNECT OPERARION.
+Added export and un-export.
 07 March 2016
 
 The USB/IP protocol follows a server/client architecture between two computers
@@ -137,36 +137,37 @@ OP_REQ_DEVLIST: Retrieve the list of importable USB devices.
 -----------+--------+------------+---------------------------------------------------
  0         | 2      | 0x0100     | Binary-coded decimal USBIP version number: v1.0.0
 -----------+--------+------------+---------------------------------------------------
- 2         | 2      | 0x8005     | Command code: Retrieve the list of exported USB
+ 2         | 2      | 0x8005     | Command code: Retrieve the list of importable USB
            |        |            |   devices.
 -----------+--------+------------+---------------------------------------------------
  4         | 4      | 0x00000000 | Status: unused, shall be set to 0
 
-OP_REP_DEVLIST: Reply with the list of exported USB devices.
+OP_REP_DEVLIST: Reply with the list of importable USB devices.
 
  Offset    | Length | Value      | Description
 -----------+--------+------------+---------------------------------------------------
  0         | 2      | 0x0100     | Binary-coded decimal USBIP version number: v1.0.0.
 -----------+--------+------------+---------------------------------------------------
- 2         | 2      | 0x0005     | Reply code: The list of exported USB devices.
+ 2         | 2      | 0x0005     | Reply code: The list of importable USB devices.
 -----------+--------+------------+---------------------------------------------------
  4         | 4      | 0x00000000 | Status: 0 for OK
 -----------+--------+------------+---------------------------------------------------
- 8         | 4      | n          | Number of exported devices: 0 means no exported
-           |        |            |   devices.
+ 8         | 4      | n          | Number of importable devices: 0 means no
+           |        |            |   importable devices.
 -----------+--------+------------+---------------------------------------------------
- 0x0C      |        |            | From now on the exported n devices are described,
-           |        |            |   if any. If no devices are exported the message
-           |        |            |   ends with the previous "number of exported
-           |        |            |   devices" field.
+ 0x0C      |        |            | From now on the importable n devices are
+           |        |            |   described, if any. If no devices are importable
+           |        |            |   the message ends with the previous "number of
+           |        |            |   importable devices" field.
 -----------+--------+------------+---------------------------------------------------
-           | 256    |            | path: Path of the device on the host exporting the
-           |        |            |   USB device, string closed with zero byte, e.g.
+           | 256    |            | path: Path of the device on the host making the
+           |        |            |   USB device importable, string closed with zero
+           |        |            |   byte, e.g.
            |        |            |   "/sys/devices/pci0000:00/0000:00:1d.1/usb3/3-2"
            |        |            |   The unused bytes shall be filled with zero
            |        |            |   bytes.
 -----------+--------+------------+---------------------------------------------------
- 0x10C     | 32     |            | busid: Bus ID of the exported device, string
+ 0x10C     | 32     |            | busid: Bus ID of the importable device, string
            |        |            |   closed with zero byte, e.g. "3-2". The unused
            |        |            |   bytes shall be filled with zero bytes.
 -----------+--------+------------+---------------------------------------------------
@@ -206,8 +207,8 @@ OP_REP_DEVLIST: Reply with the list of exported USB devices.
 -----------+--------+------------+---------------------------------------------------
  0x147     | 1      |            | padding byte for alignment, shall be set to zero
 -----------+--------+------------+---------------------------------------------------
- 0xC +     |        |            | The second exported USB device starts at i=1
- i*0x138 + |        |            | with the busid field.
+ 0xC +     |        |            | The second importable USB device starts at i=1
+ i*0x138 + |        |            |   with the busid field.
  m_(i-1)*4 |        |            |
 
 OP_REQ_IMPORT: Request to import (attach) a remote USB device.
@@ -220,7 +221,7 @@ OP_REQ_IMPORT: Request to import (attach) a remote USB device.
 -----------+--------+------------+---------------------------------------------------
  4         | 4      | 0x00000000 | Status: unused, shall be set to 0
 -----------+--------+------------+---------------------------------------------------
- 8         | 32     |            | busid: the busid of the exported device on the
+ 8         | 32     |            | busid: the busid of the importable device on the
            |        |            |   remote host. The possible values are taken
            |        |            |   from the message field OP_REP_DEVLIST.busid.
            |        |            |   A string closed with zero, the unused bytes
@@ -241,13 +242,14 @@ OP_REP_IMPORT: Reply to import (attach) a remote USB device.
            |        |            |   device, if the previous status field was OK (0),
            |        |            |   otherwise the reply ends with the status field.
 -----------+--------+------------+---------------------------------------------------
-           | 256    |            | path: Path of the device on the host exporting the
-           |        |            |   USB device, string closed with zero byte, e.g.
+           | 256    |            | path: Path of the device on the host making the
+           |        |            |   USB device importable, string closed with zero
+           |        |            |   byte, e.g.
            |        |            |   "/sys/devices/pci0000:00/0000:00:1d.1/usb3/3-2"
            |        |            |   The unused bytes shall be filled with zero
            |        |            |   bytes.
 -----------+--------+------------+---------------------------------------------------
- 0x108     | 32     |            | busid: Bus ID of the exported device, string
+ 0x108     | 32     |            | busid: Bus ID of the importable device, string
            |        |            |   closed with zero byte, e.g. "3-2". The unused
            |        |            |   bytes shall be filled with zero bytes.
 -----------+--------+------------+---------------------------------------------------
@@ -332,6 +334,7 @@ OP_REP_EXPORT: Reply to export (connect) a local USB device to remote.
 -----------+--------+------------+---------------------------------------------------
  4         | 4      | 0x00000000 | Status: 0 for OK
            |        |            |         1 for error
+           |        |            |         2 for no free port
 
 OP_REQ_UNEXPORT: Request to un-export (disconnect) a local USB device from remote.
 
@@ -390,6 +393,7 @@ OP_REP_UNEXPORT: Reply to un-export (disconnect) a local USB device from remote.
 -----------+--------+------------+---------------------------------------------------
  4         | 4      | 0x00000000 | Status: 0 for OK
            |        |            |         1 for error
+           |        |            |         3 for specified device not found
 
 USBIP_CMD_SUBMIT: Submit an URB
 

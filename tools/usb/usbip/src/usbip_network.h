@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2005-2007 Takahiro Hirofuchi
- * Copyright (C) 2015 Nobuo Iwata
  */
 
 #ifndef __USBIP_NETWORK_H
@@ -38,8 +37,10 @@ struct op_common {
 #define OP_REPLY	(0x00 << 8)
 
 /* add more error code */
-#define ST_OK	0x00
-#define ST_NA	0x01
+#define ST_OK			0x00
+#define ST_NA			0x01
+#define ST_NO_FREE_PORT		0x02
+#define ST_DEVICE_NOT_FOUND	0x03
 
 #define PACK_OP_COMMON(pack, op_common)  do {\
 	usbip_net_pack_uint16_t(pack, &(op_common)->version);\
@@ -105,11 +106,11 @@ struct op_export_request {
 	struct usbip_usb_device udev;
 });
 
+#ifndef USBIP_OS_NO_EMPTY_STRUCT
 PACK(
 struct op_export_reply {
-	uint32_t returncode;
 });
-
+#endif
 
 #define PACK_OP_EXPORT_REQUEST(pack, request)  do {\
 	usbip_net_pack_usb_device(pack, &(request)->udev);\
@@ -129,10 +130,11 @@ struct op_unexport_request {
 	struct usbip_usb_device udev;
 });
 
+#ifndef USBIP_OS_NO_EMPTY_STRUCT
 PACK(
 struct op_unexport_reply {
-	uint32_t returncode;
 });
+#endif
 
 #define PACK_OP_UNEXPORT_REQUEST(pack, request)  do {\
 	usbip_net_pack_usb_device(pack, &(request)->udev);\

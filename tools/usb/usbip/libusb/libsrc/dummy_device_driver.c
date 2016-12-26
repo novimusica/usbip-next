@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -73,9 +73,7 @@ struct usbip_host_driver device_driver = {
 		NULL, /* bind */
 		NULL, /* unbind */
 		dummy_export_device,
-		NULL, /* transfer_init */
 		NULL, /* transfer */
-		NULL, /* transfer_exit */
 		NULL, /* has_transferred */
 		NULL, /* read_device */
 		NULL, /* read_interface */

@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
  * Copyright (C) 2015-2016 Samsung Electronics
  *               Igor Kotrasinski <i.kotrasinsk@samsung.com>
  *               Krzysztof Opasiak <k.opasiak@samsung.com>
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,38 +51,56 @@ void usbip_attach_usage(void)
 }
 #endif
 
-static int import_device(struct usbip_sock *sock, struct usbip_usb_device *udev)
+static int import_device(struct usbip_sock *sock,
+			 struct usbip_usb_device *udev,
+			 const char *host, const char *port, const char *busid)
 {
 	int rc;
-	int port;
+	int port_nr;
 
 	rc = usbip_vhci_driver_open();
 	if (rc < 0) {
 		err("open vhci_driver");
-		return -1;
+		goto err_out;
 	}
 
-	port = usbip_vhci_get_free_port();
-	if (port < 0) {
-		err("no free port");
-		usbip_vhci_driver_close();
-		return -1;
-	}
+	do {
+		port_nr = usbip_vhci_get_free_port();
+		if (port_nr < 0) {
+			err("no free port");
+			goto err_driver_close;
+		}
 
-	rc = usbip_vhci_attach_device(port, sock->fd, udev->busnum,
-				      udev->devnum, udev->speed);
+		rc = usbip_vhci_attach_device(port_nr, sock->fd, udev->busnum,
+					      udev->devnum, udev->speed);
+		if (rc < 0 && errno != EBUSY) {
+			err("import device");
+			goto err_driver_close;
+			return -1;
+		}
+	} while (rc < 0);
+
+	rc = usbip_vhci_create_record(host, port, busid, port_nr);
 	if (rc < 0) {
-		err("import device");
-		usbip_vhci_driver_close();
-		return -1;
+		err("record connection");
+		goto err_detach_device;
 	}
 
 	usbip_vhci_driver_close();
 
-	return port;
+	return 0;
+
+err_detach_device:
+	usbip_vhci_detach_device(port_nr);
+err_driver_close:
+	usbip_vhci_driver_close();
+err_out:
+	return -1;
 }
 
-static int query_import_device(struct usbip_sock *sock, const char *busid)
+static int query_import_device(struct usbip_sock *sock,
+			       const char *host, const char *port,
+			       const char *busid)
 {
 	int rc;
 	struct op_import_request request;
@@ -130,54 +148,38 @@ static int query_import_device(struct usbip_sock *sock, const char *busid)
 		return -1;
 	}
 
-	/* import a device */
-	return import_device(sock, &reply.udev);
+	return import_device(sock, &reply.udev, host, port, busid);
 }
 
 int usbip_attach_device(const char *host, const char *port, const char *busid)
 {
 	struct usbip_sock *sock;
 	int rc;
-	int port_nr;
 
-	sock = usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+	sock = usbip_conn_open(host, usbip_port_string);
 	if (!sock) {
 		err("tcp connect");
 		goto err_out;
 	}
 
-	rc = usbip_ux_try_transfer_init(sock);
+	rc = query_import_device(sock, host, port, busid);
 	if (rc < 0) {
-		err("transfer init");
-		goto err_tcp_close;
-	}
-
-	port_nr = query_import_device(sock, busid);
-	if (port_nr < 0) {
 		err("query");
-		goto err_try_trx_exit;
-	}
-
-	rc = usbip_vhci_create_record(host, port, busid, port_nr);
-	if (rc < 0) {
-		err("record connection");
-		goto err_try_trx_exit;
+		goto err_tcp_close;
 	}
 
 	rc = usbip_ux_try_transfer(sock);
 	if (rc < 0) {
-		err("transfer");
-		goto err_try_trx_exit;
+		err("try transfer");
+		goto err_tcp_close;
 	}
 
-	usbip_ux_try_transfer_exit(sock);
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
 
 	return 0;
-err_try_trx_exit:
-	usbip_ux_try_transfer_exit(sock);
+
 err_tcp_close:
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
 err_out:
 	return -1;
 }

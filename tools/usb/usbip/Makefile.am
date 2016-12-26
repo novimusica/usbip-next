@@ -14,5 +14,6 @@ dist_man_MANS := $(addprefix doc/, usbip.8 usbipd.8 usbipa.8 \
 		   usbip_list_importable_devices.3 \
 		   usbip_list_local_devices.3 \
 		   usbip_connect_device.3 usbip_disconnect_device.3 \
-		   usbip_recv_pdu.3 usbip_driver_open.3 usbip_driver_close.3 \
-		   usbip_update_driver.3)
+		   usbipd_recv_pdu.3 \
+		   usbipd_driver_open.3 usbipd_driver_close.3 \
+		   usbip_hdriver_set.3)

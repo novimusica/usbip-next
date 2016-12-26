@@ -1,0 +1,38 @@
+.TH USBIP 3 2016-02-01 "" "Linux Programmer's Manual"
+.SH NAME
+usbipd_driver_open, usbipd_recv_pdu, usbipd_driver_close
+\- USB/IP daemon functions
+.SH SYNOPSIS
+.nf
+.B #include <linux/usbip_api.h>
+.sp
+.BI "int usbipd_driver_open(void);"
+.sp
+.BI "int usbipd_recv_pdu(struct usbip_sock *" sock ",
+.BI "                   const char *" host ", const char *" tcp-port ");"
+.sp
+.BI "void usbipd_driver_close(void);"
+.ad b
+.SH DESCRIPTION
+These functions adds an application protocol to USB/IP daemons
+in combination with \fBusbip_conn_init(3)\fP and \fBusbip_sock_init(3)\fP.
+.PP
+.BR usbipd_driver_open()
+opens VHCI or STUB driver in the beggining of a daemon.
+.PP
+.BR usbipd_recv_pdu()
+processes a request which is sent form remote command.
+\fIhost\fP and \fport\P are remote host and port
+which are used to create internal control records.
+.PP
+.BR usbipd_driver_close()
+closes VHCI or STUB driver at the end of a daemon.
+.SH RETURN VALUE
+0 on success otherwise none zero.
+.SH "SEE ALSO"
+.BR usbipd (8)
+.BR usbipa (8)
+.BR usbip (8)
+.BR usbip_conn_init (3)
+.BR usbip_sock_init (3)
+.BR usbip_set_use_debug (3)

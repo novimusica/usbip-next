@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2005-2007 Takahiro Hirofuchi
- * Copyright (C) 2015 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  */
 
 #ifndef __USBIP_COMMON_H
@@ -173,5 +173,17 @@ void usbip_names_get_class(char *buff, size_t size, uint8_t clazz,
 			   uint8_t subclass, uint8_t protocol);
 
 extern struct usbip_connection_operations usbip_conn_ops;
+
+static inline struct usbip_sock *
+usbip_conn_open(const char *host, const char *port)
+{
+	return usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+}
+
+static inline void
+usbip_conn_close(struct usbip_sock *sock)
+{
+	usbip_conn_ops.close(sock);
+}
 
 #endif /* __USBIP_COMMON_H */

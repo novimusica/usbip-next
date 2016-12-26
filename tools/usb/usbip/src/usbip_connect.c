@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,11 +53,7 @@ static int send_export_device(struct usbip_sock *sock,
 {
 	int rc;
 	struct op_export_request request;
-	struct op_export_reply   reply;
 	uint16_t code = OP_REP_EXPORT;
-
-	memset(&request, 0, sizeof(request));
-	memset(&reply, 0, sizeof(reply));
 
 	/* send a request */
 	rc = usbip_net_send_op_common(sock, OP_REQ_EXPORT, 0);
@@ -66,7 +62,8 @@ static int send_export_device(struct usbip_sock *sock,
 		return -1;
 	}
 
-	memcpy(&request.udev, udev, sizeof(struct usbip_usb_device));
+	memset(&request, 0, sizeof(request));
+	memcpy(&request.udev, udev, sizeof(request.udev));
 
 	PACK_OP_EXPORT_REQUEST(0, &request);
 
@@ -80,20 +77,6 @@ static int send_export_device(struct usbip_sock *sock,
 	rc = usbip_net_recv_op_common(sock, &code);
 	if (rc < 0) {
 		err("recv op_common");
-		return -1;
-	}
-
-	rc = usbip_net_recv(sock, (void *) &reply, sizeof(reply));
-	if (rc < 0) {
-		err("recv op_export_reply");
-		return -1;
-	}
-
-	PACK_OP_EXPORT_REPLY(0, &reply);
-
-	/* check the reply */
-	if (reply.returncode) {
-		err("recv error return %d", reply.returncode);
 		return -1;
 	}
 
@@ -146,6 +129,7 @@ static int export_device(const char *busid, struct usbip_sock *sock)
 	usbip_driver_close();
 
 	return 0;
+
 err_free_edevs:
 	usbip_free_device_list(&edevs);
 err_driver_close:
@@ -165,35 +149,26 @@ int usbip_connect_device(const char *host, const char *port, const char *busid)
 		goto err_out;
 	}
 
-	sock = usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+	sock = usbip_conn_open(host, port);
 	if (!sock) {
 		err("tcp connect");
 		goto err_unbind_device;
 	}
 
-	rc = usbip_try_transfer_init(sock);
-	if (rc < 0) {
-		err("transfer init");
-		goto err_close_conn;
-	}
-
 	rc = export_device(busid, sock);
 	if (rc < 0) {
 		err("export");
-		goto err_try_trx_exit;
+		goto err_close_conn;
 	}
 
 	if (usbip_has_transferred())
 		usbip_unbind_device(busid);
 
-	usbip_try_transfer_exit(sock);
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
 
 	return 0;
-err_try_trx_exit:
-	usbip_try_transfer_exit(sock);
 err_close_conn:
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
 err_unbind_device:
 	usbip_unbind_device(busid);
 err_out:
@@ -228,7 +203,7 @@ int usbip_connect(int argc, char *argv[])
 			busid = optarg;
 			break;
 		case 'd':
-			usbip_update_driver();
+			usbip_hdriver_set(USBIP_HDRIVER_TYPE_DEVICE);
 			break;
 		default:
 			goto err_out;

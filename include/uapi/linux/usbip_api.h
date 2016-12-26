@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,6 +13,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * USB/IP API to create command(s) and daemons with arbitrary network protocol.
  */
 
 #ifndef __UAPI_LINUX_USBIP_API_H
@@ -61,7 +65,7 @@ void usbip_set_use_stderr(int val);
 void usbip_set_use_syslog(int val);
 
 #ifdef USBIP_WITH_LIBUSB
-void usbip_set_debug_flags(unsigned long);
+void usbip_set_debug_flags(unsigned long flags);
 #endif
 
 int usbip_attach_device(const char *host, const char *port, const char *busid);
@@ -76,11 +80,15 @@ int usbip_connect_device(const char *host, const char *port,
 int usbip_disconnect_device(const char *host, const char *port,
 			 const char *busid);
 
-int usbip_recv_pdu(struct usbip_sock *sock, const char *host, const char *port);
-int usbip_open_driver(void);
-void usbip_close_driver(void);
+int usbipd_recv_pdu(struct usbip_sock *sock,
+		    const char *host, const char *port);
+int usbipd_driver_open(void);
+void usbipd_driver_close(void);
 
-void usbip_update_driver(void);
+int usbip_hdriver_set(int type);
+
+#define USBIP_HDRIVER_TYPE_HOST		0
+#define USBIP_HDRIVER_TYPE_DEVICE	1
 
 #ifdef __cplusplus
 }

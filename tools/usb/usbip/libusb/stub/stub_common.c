@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2003-2008 Takahiro Hirofuchi
- * Copyright (C) 2015 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -772,7 +772,7 @@ int usbip_recv_xbuff(struct usbip_device *ud, struct libusb_transfer *trx,
 	return ret;
 }
 
-void usbip_set_debug_flags(unsigned long val)
+void usbip_set_debug_flags(unsigned long flags)
 {
-	usbip_debug_flag = val;
+	usbip_debug_flag = flags;
 }

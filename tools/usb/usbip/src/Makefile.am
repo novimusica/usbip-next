@@ -1,5 +1,5 @@
 AM_CPPFLAGS = -I$(top_srcdir)/libsrc -DUSBIDS_FILE='"@USBIDS_DIR@/usb.ids"'
-AM_CFLAGS   = @EXTRA_CFLAGS@
+AM_CFLAGS   = @EXTRA_CFLAGS@ -pthread
 LDADD       = $(top_builddir)/libsrc/libusbip.la
 
 sbin_PROGRAMS := usbip usbipd usbipa
@@ -24,10 +24,10 @@ libusbipc_la_SOURCES := usbip_network.c \
 libusbipc_la_CFLAGS := $(AM_CFLAGS) -DUSBIP_AS_LIBRARY
 libusbipc_la_LDFLAGS := -version-info @LIBUSBIP_VERSION@
 
-libusbipd_la_SOURCES := usbipd_dev.c usbip_network.c
+libusbipd_la_SOURCES := usbipd.c usbipd_dev.c usbip_network.c
 libusbipd_la_CFLAGS := $(AM_CFLAGS) -DUSBIP_AS_LIBRARY
 libusbipd_la_LDFLAGS := -version-info @LIBUSBIP_VERSION@
 
-libusbipa_la_SOURCES := usbipd_app.c usbip_network.c
+libusbipa_la_SOURCES := usbipd.c usbipd_app.c usbip_network.c
 libusbipa_la_CFLAGS := $(AM_CFLAGS) -DUSBIP_AS_LIBRARY
 libusbipa_la_LDFLAGS := -version-info @LIBUSBIP_VERSION@

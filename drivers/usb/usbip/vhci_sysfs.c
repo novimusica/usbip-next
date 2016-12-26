@@ -219,7 +219,7 @@ static ssize_t store_detach(struct device *dev, struct device_attribute *attr,
 
 	ret = vhci_port_disconnect(hcd_to_vhci(hcd), rhport);
 	if (ret < 0)
-		return -EINVAL;
+		return ret;
 
 	usbip_dbg_vhci_sysfs("Leave\n");
 
@@ -276,8 +276,10 @@ static ssize_t store_attach(struct device *dev, struct device_attribute *attr,
 	 * @devid: unique device identifier in a remote host
 	 * @speed: usb device speed in a remote host
 	 */
-	if (sscanf(buf, "%u %u %u %u", &port, &sockfd, &devid, &speed) != 4)
-		return -EINVAL;
+	if (sscanf(buf, "%u %u %u %u", &port, &sockfd, &devid, &speed) != 4) {
+		err = -EINVAL;
+		goto err_out;
+	}
 	pdev_nr = port_to_pdev_nr(port);
 	rhport = port_to_rhport(port);
 
@@ -287,12 +289,15 @@ static ssize_t store_attach(struct device *dev, struct device_attribute *attr,
 			     sockfd, devid, speed);
 
 	/* check received parameters */
-	if (!valid_args(pdev_nr, rhport, speed))
-		return -EINVAL;
+	if (!valid_args(pdev_nr, rhport, speed)) {
+		err = -EINVAL;
+		goto err_out;
+	}
 
-	err = vhci_get_device(pdev_nr, rhport, &vhci, &vdev);
-	if (err)
-		return err;
+	if (vhci_get_device(pdev_nr, rhport, &vhci, &vdev)) {
+		err = -EAGAIN;
+		goto err_out;
+	}
 
 	/* now need lock until setting vdev status as used */
 
@@ -301,24 +306,20 @@ static ssize_t store_attach(struct device *dev, struct device_attribute *attr,
 	spin_lock(&vdev->ud.lock);
 
 	if (vdev->ud.status != VDEV_ST_NULL) {
-		/* end of the lock */
-		spin_unlock(&vdev->ud.lock);
-		spin_unlock_irqrestore(&vhci->lock, flags);
-
-		vhci_put_device(vdev);
-
 		dev_err(dev, "port %d already used\n", rhport);
-		return -EINVAL;
+		/*
+		 * Will be retried from userspace
+		 * if there's another free port.
+		 */
+		err = -EBUSY;
+		goto err_unlock;
 	}
 
 	err = usbip_trx_ops->link(&vdev->ud, sockfd);
 	if (err) {
-		spin_unlock(&vdev->ud.lock);
-		spin_unlock_irqrestore(&vhci->lock, flags);
-
-		vhci_put_device(vdev);
-
-		return err;
+		dev_err(dev, "link sockfd %d err:%d\n", sockfd, err);
+		err = -EINVAL;
+		goto err_unlock;
 	}
 
 	dev_info(dev, "pdev(%u) rhport(%u) sockfd(%d)\n",
@@ -340,6 +341,14 @@ static ssize_t store_attach(struct device *dev, struct device_attribute *attr,
 	rh_port_connect(vdev, speed);
 
 	return count;
+
+err_unlock:
+	spin_unlock(&vdev->ud.lock);
+	spin_unlock_irqrestore(&vhci->lock, flags);
+
+	vhci_put_device(vdev);
+err_out:
+	return err;
 }
 static DEVICE_ATTR(attach, S_IWUSR, NULL, store_attach);
 
@@ -361,10 +370,10 @@ static void set_status_attr(int id)
 		strcpy(status->name, "status");
 	else
 		snprintf(status->name, MAX_STATUS_NAME+1, "status.%d", id);
-	sysfs_attr_init(&status->attr.attr);
 	status->attr.attr.name = status->name;
 	status->attr.attr.mode = S_IRUGO;
 	status->attr.show = status_show;
+	sysfs_attr_init(&status->attr.attr);
 }
 
 static int init_status_attrs(void)

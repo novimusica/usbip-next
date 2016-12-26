@@ -1,0 +1,19 @@
+.TH USBIP 3 2016-02-01 "" "Linux Programmer's Manual"
+.SH NAME
+usbip_hdriver_set
+\- Alternate host driver
+.SH SYNOPSIS
+.nf
+.B #include <linux/usbip_api.h>
+.sp
+.BI "void usbip_hdriver_set(int type);"
+.ad b
+.SH DESCRIPTION
+This function changes host driver to specified type for device side daemon and commands. The default setting is the host driver. List of the type is as below.
+.TP
+.B USBIP_HDRIVER_TYPE_HOST
+Host driver. i.e. STUB driver.
+.TP
+.B USBIP_HDRIVER_TYPE_DEVICE
+Device driver. e.g. vUDC.
+.PP

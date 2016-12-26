@@ -1,10 +1,10 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
  * Copyright (C) 2015-2016 Samsung Electronics
  *               Igor Kotrasinski <i.kotrasinsk@samsung.com>
  *               Krzysztof Opasiak <k.opasiak@samsung.com>
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,14 +46,13 @@
 
 #ifndef USBIP_AS_LIBRARY
 static const char usbip_list_usage_string[] =
-	"usbip list <args>\n"
+	"usbip list [-p|--parsable] <args>\n"
 	"    -p, --parsable         Parsable list format\n"
-	"    -l, --local            List the local USB devices\n"
 	"    -r, --remote=<host>    List the importable USB devices on <host>\n"
+	"    -l, --local            List the local USB devices\n"
 	"    -d, --device           List the local devices with "
 	"an alternate driver,\n"
-	"                           e.g. vUDC\n"
-	;
+	"                           e.g. vUDC\n";
 
 void usbip_list_usage(void)
 {
@@ -152,7 +151,7 @@ int usbip_list_importable_devices(const char *host, const char *port)
 	if (usbip_names_init(USBIDS_FILE))
 		err("failed to open %s", USBIDS_FILE);
 
-	sock = usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+	sock = usbip_conn_open(host, port);
 	if (!sock) {
 		err("could not connect to %s:%s", host, port);
 		goto err_out;
@@ -165,11 +164,12 @@ int usbip_list_importable_devices(const char *host, const char *port)
 		goto err_conn_close;
 	}
 
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
+	usbip_names_free();
 	return 0;
 
 err_conn_close:
-	usbip_conn_ops.close(sock);
+	usbip_conn_close(sock);
 err_out:
 	usbip_names_free();
 	return -1;
@@ -177,10 +177,12 @@ err_out:
 #else
 int usbip_list_importable_devices(const char *host, const char *port)
 {
-	info("unsupported command: list --remote %s --busid %s", host, port);
+	(void)port;
+
+	info("unsupported command: list --remote %s", host);
 	return 0;
 }
-#endif /* USBIP_WITH_LIBUSB */
+#endif /* !USBIP_WITH_LIBUSB */
 
 static void print_device(const char *busid, uint16_t vendor,
 			 uint16_t product, int parsable)
@@ -248,8 +250,8 @@ int usbip_list(int argc, char *argv[])
 {
 	static const struct option opts[] = {
 		{ "parsable", no_argument,       NULL, 'p' },
-		{ "local",    no_argument,       NULL, 'l' },
 		{ "remote",   required_argument, NULL, 'r' },
+		{ "local",    no_argument,       NULL, 'l' },
 		{ "device",    no_argument,       NULL, 'd' },
 		{ NULL,       0,                 NULL,  0  }
 	};
@@ -259,7 +261,7 @@ int usbip_list(int argc, char *argv[])
 	int ret = -1;
 
 	for (;;) {
-		opt = getopt_long(argc, argv, "plr:d", opts, NULL);
+		opt = getopt_long(argc, argv, "pr:ld", opts, NULL);
 
 		if (opt == -1)
 			break;
@@ -268,15 +270,15 @@ int usbip_list(int argc, char *argv[])
 		case 'p':
 			parsable = 1;
 			break;
+		case 'r':
+			ret = usbip_list_importable_devices(optarg,
+							    usbip_port_string);
+			goto out;
 		case 'l':
 			ret = usbip_list_local_devices(parsable);
 			goto out;
-		case 'r':
-			ret = usbip_list_importable_devices(optarg,
-							usbip_port_string);
-			goto out;
 		case 'd':
-			usbip_update_driver();
+			usbip_hdriver_set(USBIP_HDRIVER_TYPE_DEVICE);
 			ret = usbip_list_local_devices(parsable);
 			goto out;
 		default:

@@ -1,9 +1,9 @@
 #
 # README for usbip-utils
 #
-# Copyright (C) 2015 Nobuo Iwata
-#               2011 matt mooney <mfm@muteddisk.com>
+# Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
 #               2005-2008 Takahiro Hirofuchi
+# Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
 
 
 [Requirements]
@@ -98,13 +98,12 @@ Application-side: a machine runs an application software uses remote USB device.
 	- Unbind usbip-host.ko from the device.
 
 
-[Userspace Transmission]
+[Activate USB/IP API]
 
-In usage shown above, once USB devices are imported or exported, USP/IP drivers
-send and receive URBs in kernel space. The usbip_ux.ko kernel module alternates
-the route to user space by forwarding USBs through USB/IP utilities (ie. usbip,
-usbipd, usbipa). When userspace transmission enabled, usbip attach and connect
-will continue executing until usbip detach or disconnect is exeuted.
+To activate USB/IP API, usbip-ux.ko - the userspace transmission module should
+be loaded. When usbip-ux.ko is loaded, usbip attach and connect transmit URBs in
+userspace and will continue executing until usbip detach or disconnect is
+exeuted.
 
     app:# insmod usbip-core.ko
     app:# insmod usbip-ux.ko
@@ -117,11 +116,11 @@ will continue executing until usbip detach or disconnect is exeuted.
     dev:# insmod usbip-host.ko
 
     dev:# usbip connect --remote <host> --busid <busid>
-	- Continue running.
-	- Until disconnect command is executed in other terminal window.
+        - Continue running.
+        - Until disconnect command is executed in other terminal window.
 
     dev:# usbip disconnect --remote <host> --busid <busid>
-	- Stops transission, quits connect command and disconnect device.
+        - Stops transission, quits connect command and disconnect device.
 
 
 [Example]
@@ -241,6 +240,19 @@ Detach the imported device:
 
     deux:# usbip detach --port 0
     port 0 detached
+
+
+[Security consideration]
+
+Daemons accept following requests form network :
+    EXISTING) 'list --remote' and 'attach'
+    NEW) 'connect' and 'disconnect'
+
+TCP wrappers allows and/or denies network access. It is enabled when the daemons are compiled with ./configure --with-tcp-wrappers.
+
+When the daemons are running with SSL or Secure WebSocket tunneling proxy, the proxy can use client authentication with certificate files.
+
+Udev rules can allow only known devices. To identify whether a device is remote, the local bus-id (KERNEL parameter in the rule) will be found in the last column of /sys/devices/platform/vhci_hcd/status[.N]. When device is found, the port number of USB/IP can be found in the first column of the matched line. The udev script can finish the connection using detach operation with the port number.
 
 
 [Checklist]

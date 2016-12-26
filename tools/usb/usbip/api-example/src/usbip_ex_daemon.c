@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nobuo Iwata
+ * Copyright (C) 2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,14 +48,14 @@ int main(int argc, char *argv[])
 
 	set_signal();
 
-	if (usbip_open_driver()) {
+	if (usbipd_driver_open()) {
 		perror("Failed to open driver");
 		goto err_out;
 	}
 
 	listenfd = usbip_ex_listen();
 	if (listenfd < 0)
-		goto err_close_driver;
+		goto err_driver_close;
 
 	while (1) {
 		connfd = usbip_ex_accept(listenfd, &info);
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 					usbip_ex_send, usbip_ex_recv,
 					usbip_ex_shutdown);
 			printf("processing %s:%s\n", info.host, info.port);
-			usbip_recv_pdu(&sock, info.host, info.port);
+			usbipd_recv_pdu(&sock, info.host, info.port);
 			printf("end of process %s:%s\n", info.host, info.port);
 			return EXIT_SUCCESS;
 		}
@@ -81,14 +81,14 @@ int main(int argc, char *argv[])
 	}
 
 	close(listenfd);
-	usbip_close_driver();
+	usbipd_driver_close();
 	EXIT_SUCCESS;
 err_conn_close:
 	close(connfd);
 err_sock_close:
 	close(listenfd);
-err_close_driver:
-	usbip_close_driver();
+err_driver_close:
+	usbipd_driver_close();
 err_out:
 	return EXIT_FAILURE;
 }

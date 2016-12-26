@@ -35,6 +35,7 @@ libusbipc_libusb_la_SOURCES := \
 libusbipc_libusb_la_CFLAGS := $(AM_CFLAGS) -DUSBIP_AS_LIBRARY
 
 libusbipd_libusb_la_SOURCES := \
+		../../src/usbipd.c \
 		../../src/usbipd_dev.c \
 		../../src/usbip_network.c
 libusbipd_libusb_la_CFLAGS := $(AM_CFLAGS) -DUSBIP_AS_LIBRARY

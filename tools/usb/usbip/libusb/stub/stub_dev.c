@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2003-2008 Takahiro Hirofuchi
- * Copyright (C) 2015-2016 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -329,6 +329,7 @@ static int stub_refresh_device_list(struct usbip_exported_devices *edevs)
 	struct libusb_device_descriptor desc;
 	char busid[SYSFS_BUS_ID_SIZE];
 
+	edevs->ndevs = 0;
 	INIT_LIST_HEAD(&edevs->edev_list);
 	edevs->data = NULL;
 
@@ -851,13 +852,6 @@ static void stub_join(struct stub_device *sdev)
 	pthread_join(sdev->rx, NULL);
 }
 
-static int stub_try_transfer_init(struct usbip_sock *sock)
-{
-	if (!sock)
-		return -1;
-	return 0;
-}
-
 static int stub_try_transfer(struct usbip_exported_device *edev,
 			     struct usbip_sock *sock)
 {
@@ -878,12 +872,6 @@ static int stub_try_transfer(struct usbip_exported_device *edev,
 	return 0;
 }
 
-static void stub_try_transfer_exit(struct usbip_sock *sock)
-{
-	if (!sock)
-		dbg("invalid transfer end");
-}
-
 static int stub_has_transferred(void)
 {
 	return 1;
@@ -902,9 +890,7 @@ struct usbip_host_driver host_driver = {
 		stub_bind_device,
 		stub_unbind_device,
 		stub_export_device,
-		stub_try_transfer_init,
 		stub_try_transfer,
-		stub_try_transfer_exit,
 		stub_has_transferred,
 		NULL, /* read_device */
 		NULL, /* read_interface */

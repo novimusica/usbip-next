@@ -1,6 +1,21 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
  * USB/IP URB transmission in userspace.
  */
 
@@ -232,23 +247,21 @@ static void usbip_ux_join(struct usbip_ux *ux)
 	pthread_join((ux)->rx, NULL);
 }
 
-int usbip_ux_try_transfer_init(struct usbip_sock *sock)
-{
-	return usbip_ux_setup(sock, (struct usbip_ux **)&sock->ux);
-}
-
 int usbip_ux_try_transfer(struct usbip_sock *sock)
 {
-	if (sock->ux != NULL) {
-		usbip_ux_start((struct usbip_ux *)sock->ux);
-		usbip_ux_join((struct usbip_ux *)sock->ux);
-	}
-	return 0;
-}
+	struct usbip_ux *ux = sock->ux;
 
-void usbip_ux_try_transfer_exit(struct usbip_sock *sock)
-{
-	usbip_ux_cleanup((struct usbip_ux **)&sock->ux);
+	if (usbip_ux_setup(sock, &ux))
+		return -1;
+
+	if (ux != NULL) {
+		usbip_ux_start(ux);
+		usbip_ux_join(ux);
+	}
+
+	usbip_ux_cleanup(&ux);
+
+	return 0;
 }
 
 void usbip_ux_interrupt(struct usbip_ux *ux)

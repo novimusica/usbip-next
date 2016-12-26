@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2011 matt mooney <mfm@muteddisk.com>
+ * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,19 @@ extern unsigned long usbip_debug_flag;
 extern char *usbip_progname;
 extern char *usbip_default_pid_file;
 
-int usbip_recv_pdu(struct usbip_sock *sock, const char *host, const char *port);
+struct usbipd_recv_pdu_op {
+	uint16_t code;
+	int (*proc)(struct usbip_sock *sock,
+		    const char *host, const char *port);
+};
 
-void usbip_update_driver(void);
-int usbip_open_driver(void);
-void usbip_close_driver(void);
+extern struct usbipd_recv_pdu_op usbipd_recv_pdu_ops[];
+
+struct usbipd_driver_ops {
+	int (*open)(void);
+	void (*close)(void);
+};
+
+extern struct usbipd_driver_ops usbipd_driver_ops;
 
 #endif /* __USBIPD_H */

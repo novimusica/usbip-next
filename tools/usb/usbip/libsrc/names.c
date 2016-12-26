@@ -23,8 +23,6 @@
  *
  *	Copyright (C) 2005 Takahiro Hirofuchi
  *		- names_deinit() is added.
- *	Copyright (C) 2015 Nobuo Iwata
- *		- some modifications for portability.
  *
  */
 

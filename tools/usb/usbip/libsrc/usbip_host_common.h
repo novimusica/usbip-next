@@ -2,12 +2,11 @@
  * Copyright (C) 2015-2016 Samsung Electronics
  *               Igor Kotrasinski <i.kotrasinsk@samsung.com>
  *               Krzysztof Opasiak <k.opasiak@samsung.com>
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * Refactored from usbip_host_driver.c, which is:
  * Copyright (C) 2011 matt mooney <mfm@muteddisk.com>
  *               2005-2007 Takahiro Hirofuchi
- *
- * Copyright (C) 2016 Nobuo Iwata
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,11 +57,9 @@ struct usbip_host_driver_ops {
 	int (*bind_device)(const char *busid);
 	int (*unbind_device)(const char *busid);
 	int (*export_device)(struct usbip_exported_device *edev,
-			     struct usbip_sock *sock);
-	int (*try_transfer_init)(struct usbip_sock *sock);
+			struct usbip_sock *sock);
 	int (*try_transfer)(struct usbip_exported_device *edev,
-			    struct usbip_sock *sock);
-	void (*try_transfer_exit)(struct usbip_sock *sock);
+			struct usbip_sock *sock);
 	int (*has_transferred)(void);
 
 	int (*read_device)(struct udev_device *sdev,
@@ -108,14 +105,16 @@ static inline void usbip_driver_close(void)
 	usbip_hdriver->ops.close();
 }
 
-static inline int usbip_refresh_device_list(struct usbip_exported_devices *edevs)
+static inline int usbip_refresh_device_list(
+			struct usbip_exported_devices *edevs)
 {
 	if (!usbip_hdriver->ops.refresh_device_list)
 		return -EOPNOTSUPP;
 	return usbip_hdriver->ops.refresh_device_list(edevs);
 }
 
-static inline int usbip_free_device_list(struct usbip_exported_devices *edevs)
+static inline int usbip_free_device_list(
+			struct usbip_exported_devices *edevs)
 {
 	if (!usbip_hdriver->ops.refresh_device_list)
 		return -EOPNOTSUPP;
@@ -138,34 +137,22 @@ static inline int usbip_list_devices(struct usbip_usb_device **udevs)
 	return usbip_hdriver->ops.list_devices(udevs);
 }
 
-static inline int usbip_export_device(struct usbip_exported_device *edev,
-				      struct usbip_sock *sock)
+static inline int usbip_export_device(
+			struct usbip_exported_device *edev,
+			struct usbip_sock *sock)
 {
 	if (!usbip_hdriver->ops.export_device)
 		return -1;
 	return usbip_hdriver->ops.export_device(edev, sock);
 }
 
-static inline int usbip_try_transfer_init(struct usbip_sock *sock)
-{
-	if (!usbip_hdriver->ops.try_transfer_init)
-		return -1;
-	return usbip_hdriver->ops.try_transfer_init(sock);
-}
-
-static inline int usbip_try_transfer(struct usbip_exported_device *edev,
-				     struct usbip_sock *sock)
+static inline int usbip_try_transfer(
+			struct usbip_exported_device *edev,
+			struct usbip_sock *sock)
 {
 	if (!usbip_hdriver->ops.try_transfer)
 		return -1;
 	return usbip_hdriver->ops.try_transfer(edev, sock);
-}
-
-static inline void usbip_try_transfer_exit(struct usbip_sock *sock)
-{
-	if (!usbip_hdriver->ops.try_transfer_exit)
-		return;
-	usbip_hdriver->ops.try_transfer_exit(sock);
 }
 
 static inline int usbip_has_transferred(void)
@@ -186,12 +173,12 @@ struct usbip_exported_device *usbip_generic_get_device(
 int usbip_generic_list_devices(struct usbip_usb_device **udevs);
 int usbip_generic_bind_device(const char *busid);
 int usbip_generic_unbind_device(const char *busid);
-int usbip_generic_export_device(struct usbip_exported_device *edev,
-				struct usbip_sock *sock);
-int usbip_generic_try_transfer_init(struct usbip_sock *sock);
-int usbip_generic_try_transfer(struct usbip_exported_device *edev,
-			       struct usbip_sock *sock);
-void usbip_generic_try_transfer_exit(struct usbip_sock *sock);
+int usbip_generic_export_device(
+			struct usbip_exported_device *edev,
+			struct usbip_sock *sock);
+int usbip_generic_try_transfer(
+			struct usbip_exported_device *edev,
+			struct usbip_sock *sock);
 int usbip_generic_has_transferred(void);
 
 #endif /* __USBIP_HOST_COMMON_H */

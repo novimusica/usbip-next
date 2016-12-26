@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2003-2008 Takahiro Hirofuchi
- * Copyright (C) 2015 Nobuo Iwata
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  *
  * This is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

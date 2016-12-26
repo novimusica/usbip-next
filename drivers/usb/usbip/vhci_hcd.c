@@ -472,13 +472,14 @@ static void vhci_tx_urb(struct urb *urb)
 {
 	struct vhci_device *vdev = get_vdev(urb->dev);
 	struct vhci_priv *priv;
-	struct vhci_hcd *vhci = vdev_to_vhci(vdev);
+	struct vhci_hcd *vhci;
 	unsigned long flags;
 
 	if (!vdev) {
 		pr_err("could not get virtual device");
 		return;
 	}
+	vhci = vdev_to_vhci(vdev);
 
 	priv = kzalloc(sizeof(struct vhci_priv), GFP_ATOMIC);
 	if (!priv) {
@@ -1229,14 +1230,13 @@ static int __add_platform_device(int pdev_nr)
 	int id = pdev_nr2id(pdev_nr);
 
 	pdev = platform_device_register_simple(driver_name, id, NULL, 0);
-	if (pdev == NULL) {
+	if (IS_ERR(pdev)) {
 		pr_err("failed to register pdev\n");
-		return -ENODEV;
+		return PTR_ERR(pdev);
 	}
 
 	*(vhci_pdevs + pdev_nr) = pdev;
 	++vhci_num_controllers;
-
 	return 0;
 }
 
@@ -1318,7 +1318,7 @@ int vhci_get_device(__u32 pdev_nr, __u32 rhport,
 		spin_unlock_irqrestore(&pdevs_lock, flags);
 		return -ERESTARTSYS;
 	}
-	usbip_dbg_vhci_rh("end of waiting pdev start %d\n", pdev_nr);
+	usbip_dbg_vhci_rh("end of waiting pdev started %d\n", pdev_nr);
 
 	pdev = *(vhci_pdevs + pdev_nr);
 	__vhci_get_device(pdev, rhport, vhci, vdev);

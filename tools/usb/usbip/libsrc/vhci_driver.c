@@ -1,6 +1,6 @@
 /*
- * Copyright (C) 2015 Nobuo Iwata
- *               2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2005-2007 Takahiro Hirofuchi
+ * Copyright (C) 2015-2016 Nobuo Iwata <nobuo.iwata@fujixerox.co.jp>
  */
 
 #include "usbip_common.h"
@@ -167,6 +167,28 @@ static int get_nports(void)
 	return 0;
 }
 
+static int __read_record(int rhport, char *buffer, size_t buffer_len)
+{
+	FILE *file;
+	char path[PATH_MAX+1];
+
+	snprintf(path, PATH_MAX, VHCI_STATE_PATH"/port%d", rhport);
+
+	file = fopen(path, "r");
+	if (!file) {
+		err("fopen %s", path);
+		return -1;
+	}
+	if (fgets(buffer, buffer_len, file) == NULL) {
+		err("fgets %s", path);
+		fclose(file);
+		return -1;
+	}
+	fclose(file);
+
+	return 0;
+}
+
 /*
  * Read the given port's record.
  *
@@ -176,58 +198,47 @@ static int get_nports(void)
  * which is needed to properly validate the 3rd part without it being
  * truncated to an acceptable length.
  */
-static int read_record(int port, char *host, unsigned long host_len,
-		char *port_s, unsigned long port_slen, char *busid)
+static int read_record(int port, char *host, int host_len,
+		char *serv, int serv_len, char *busid, int busid_len)
 {
 	int part;
-	FILE *file;
-	char path[PATH_MAX+1];
 	char *buffer, *start, *end;
 	char delim[] = {' ', ' ', '\n'};
-	int max_len[] = {(int)host_len, (int)port_slen, SYSFS_BUS_ID_SIZE};
-	size_t buffer_len = host_len + port_slen + SYSFS_BUS_ID_SIZE + 4;
+	char * const str[] = {host, serv, busid};
+	int max_len[] = {host_len, serv_len, busid_len};
+	int str_len;
+	size_t buffer_len = host_len + serv_len + busid_len + 4;
 
 	buffer = (char *)malloc(buffer_len);
 	if (!buffer)
-		return -1;
+		goto err_out;
 
-	snprintf(path, PATH_MAX, VHCI_STATE_PATH"/port%d", port);
-
-	file = fopen(path, "r");
-	if (!file) {
-		err("fopen %s", path);
-		free(buffer);
-		return -1;
-	}
-
-	if (fgets(buffer, buffer_len, file) == NULL) {
-		err("fgets %s", path);
-		free(buffer);
-		fclose(file);
-		return -1;
-	}
-	fclose(file);
+	if (__read_record(port, buffer, buffer_len))
+		goto err_free_buffer;
 
 	/* validate the length of each of the 3 parts */
 	start = buffer;
 	for (part = 0; part < 3; part++) {
 		end = strchr(start, delim[part]);
-		if (end == NULL || (end - start) > max_len[part]) {
-			free(buffer);
-			return -1;
+		if (end == NULL)
+			goto err_free_buffer;
+		str_len = (end - start);
+		if (str[part]) {
+			if (str_len >= max_len[part])
+				goto err_free_buffer;
+			memcpy(str[part], start, str_len);
+			*(str[part] + str_len) = 0;
 		}
 		start = end + 1;
 	}
-
-	if (sscanf(buffer, "%s %s %s\n", host, port_s, busid) != 3) {
-		err("sscanf");
-		free(buffer);
-		return -1;
-	}
-
 	free(buffer);
 
 	return 0;
+
+err_free_buffer:
+	free(buffer);
+err_out:
+	return -1;
 }
 
 static int open_hc_device(int mode)
@@ -282,6 +293,7 @@ err_out:
 	return -1;
 }
 
+
 void usbip_vhci_driver_close(void)
 {
 	close_hc_device();
@@ -305,6 +317,7 @@ int usbip_vhci_get_free_port(void)
 			return vdev.port;
 		}
 	}
+
 	close_status(&context);
 	return -1;
 }
@@ -312,8 +325,7 @@ int usbip_vhci_get_free_port(void)
 int usbip_vhci_find_device(const char *host, const char *busid)
 {
 	int ret;
-	char rhost[NI_MAXHOST] = "unknown host";
-	char rserv[NI_MAXSERV] = "unknown port";
+	char rhost[NI_MAXHOST];
 	char rbusid[SYSFS_BUS_ID_SIZE];
 	struct status_context context;
 	struct usbip_vhci_device vdev;
@@ -322,14 +334,15 @@ int usbip_vhci_find_device(const char *host, const char *busid)
 		return -1;
 
 	while (!parse_status_line(&context, &vdev)) {
-		if (vdev.status != VDEV_ST_USED)
+		if (vdev.status == VDEV_ST_NULL ||
+			vdev.status == VDEV_ST_NOTASSIGNED)
 			continue;
 
-		ret = read_record(vdev.port, rhost, NI_MAXHOST,
-				  rserv, NI_MAXSERV, rbusid);
+		ret = read_record(vdev.port, rhost, sizeof(rhost), NULL, 0,
+				  rbusid, sizeof(rbusid));
 		if (!ret &&
-			!strncmp(host, rhost, NI_MAXHOST) &&
-			!strncmp(busid, rbusid, SYSFS_BUS_ID_SIZE)) {
+			!strncmp(host, rhost, sizeof(rhost)) &&
+			!strncmp(busid, rbusid, sizeof(rbusid))) {
 			close_status(&context);
 			return vdev.port;
 		}
@@ -338,7 +351,7 @@ int usbip_vhci_find_device(const char *host, const char *busid)
 	return -1;
 }
 
-static int usbip_vhci_attach_device2(int port, int sockfd, uint32_t devid,
+int usbip_vhci_attach_device2(int port, int sockfd, uint32_t devid,
 		uint32_t speed)
 {
 	char buff[200]; /* what size should be ? */
@@ -421,7 +434,7 @@ static int usbip_vhci_imported_device_dump(struct usbip_vhci_device *vdev)
 		return 0;
 
 	ret = read_record(vdev->port, host, sizeof(host), serv, sizeof(serv),
-			  remote_busid);
+			  remote_busid, sizeof(remote_busid));
 	if (ret) {
 		err("read_record");
 		read_record_error = 1;
@@ -461,7 +474,7 @@ int usbip_vhci_imported_devices_dump(void)
 
 	while (!parse_status_line(&context, &vdev)) {
 		if (vdev.status == VDEV_ST_NULL ||
-		    vdev.status == VDEV_ST_NOTASSIGNED)
+			vdev.status == VDEV_ST_NOTASSIGNED)
 			continue;
 
 		if (usbip_vhci_imported_device_dump(&vdev))
@@ -477,7 +490,7 @@ err_out:
 }
 
 #define MAX_BUFF 100
-int usbip_vhci_create_record(const char *host, const char *port_s,
+int usbip_vhci_create_record(const char *host, const char *serv,
 			     const char *busid, int port)
 {
 	int fd;
@@ -502,12 +515,12 @@ int usbip_vhci_create_record(const char *host, const char *port_s,
 
 	snprintf(path, PATH_MAX, VHCI_STATE_PATH"/port%d", port);
 
-	fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU);
+	fd = open(path, O_WRONLY|O_CREAT|O_TRUNC, 0700);
 	if (fd < 0)
 		return -1;
 
 	snprintf(buff, MAX_BUFF, "%s %s %s\n",
-			host, port_s, busid);
+			host, serv, busid);
 
 	ret = write(fd, buff, strlen(buff));
 	if (ret != (ssize_t) strlen(buff)) {
