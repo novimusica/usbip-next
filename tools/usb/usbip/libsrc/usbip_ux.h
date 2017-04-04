@@ -35,8 +35,10 @@ struct usbip_ux {
 
 struct usbip_sock;
 
+int usbip_ux_setup(struct usbip_sock *sock);
+void usbip_ux_cleanup(struct usbip_sock *sock);
 int usbip_ux_try_transfer(struct usbip_sock *sock);
-void usbip_ux_interrupt(struct usbip_ux *ux);
+void usbip_ux_interrupt(struct usbip_sock *sock);
 void usbip_ux_interrupt_pgrp(void);
 int usbip_ux_installed(void);
 

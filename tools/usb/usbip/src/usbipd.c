@@ -125,7 +125,8 @@ void usbipd_driver_close(void)
 		(*(usbipd_driver_ops.close))();
 }
 
-int usbipd_recv_pdu(struct usbip_sock *sock, const char *host, const char *port)
+static int __recv_pdu(struct usbip_sock *sock,
+		      const char *host, const char *port)
 {
 	uint16_t code = OP_UNSPEC;
 	int ret;
@@ -160,6 +161,21 @@ int usbipd_recv_pdu(struct usbip_sock *sock, const char *host, const char *port)
 	else
 		info("request %#0x(%d): failed", code, sock->fd);
 
+	return ret;
+}
+
+int usbipd_recv_pdu(struct usbip_sock *sock, const char *host, const char *port)
+{
+	int ret;
+
+#ifndef USBIP_WITH_LIBUSB
+	usbip_ux_setup(sock);
+#endif
+	ret = __recv_pdu(sock, host, port);
+
+#ifndef USBIP_WITH_LIBUSB
+	usbip_ux_cleanup(sock);
+#endif
 	return ret;
 }
 

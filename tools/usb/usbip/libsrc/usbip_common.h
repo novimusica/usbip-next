@@ -177,13 +177,24 @@ extern struct usbip_connection_operations usbip_conn_ops;
 static inline struct usbip_sock *
 usbip_conn_open(const char *host, const char *port)
 {
-	return usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+	struct usbip_sock *sock;
+
+	sock = usbip_conn_ops.open(host, port, usbip_conn_ops.opt);
+
+#ifndef USBIP_WITH_LIBUSB
+	if (sock)
+		usbip_ux_setup(sock);
+#endif
+	return sock;
 }
 
 static inline void
 usbip_conn_close(struct usbip_sock *sock)
 {
 	usbip_conn_ops.close(sock);
+#ifndef USBIP_WITH_LIBUSB
+	usbip_ux_cleanup(sock);
+#endif
 }
 
 #endif /* __USBIP_COMMON_H */

@@ -115,7 +115,7 @@ static ssize_t usbip_ux_read(struct file *file,
 	ux->tx_error = 0;
 	ret = usbip_ux_get(ux);
 	if (ret) {
-		pr_debug("Fail to get ux.\n");
+		usbip_dbg_ux("Fail to get ux.\n");
 		goto err_out;
 	}
 	ret = wait_event_interruptible(ux->tx_req_q,
@@ -189,12 +189,12 @@ static int usbip_ux_sendmsg(struct usbip_device *ud, struct msghdr *msg,
 
 	usbip_dbg_ux("sendmsg.\n");
 	if (ux == NULL) {
-		pr_debug("Send to unlinked ux (0).\n");
+		usbip_dbg_ux("Send to unlinked ux (0).\n");
 		goto err_out;
 	}
 	ret = usbip_ux_get(ux);
 	if (ret) {
-		pr_debug("Fail to get ux.\n");
+		usbip_dbg_ux("Fail to get ux.\n");
 		goto err_out;
 	}
 	for (i = 0; i < num; i++) {
@@ -223,7 +223,7 @@ static ssize_t usbip_ux_write(struct file *file,
 	usbip_dbg_ux("write waiting.\n");
 	ret = usbip_ux_get(ux);
 	if (ret) {
-		pr_debug("Fail to get ux.\n");
+		usbip_dbg_ux("Fail to get ux.\n");
 		goto err_out;
 	}
 	ux->rx_error = 0;
@@ -297,13 +297,13 @@ static int usbip_ux_recvmsg(struct usbip_device *ud, struct msghdr *msg,
 
 	usbip_dbg_ux("recvmsg.\n");
 	if (ux == NULL) {
-		pr_debug("Recv from unlinked ux (0).\n");
+		usbip_dbg_ux("Recv from unlinked ux (0).\n");
 		ret = 0;
 		goto err_out;
 	}
 	ret = usbip_ux_get(ux);
 	if (ret) {
-		pr_debug("Fail to get ux.\n");
+		usbip_dbg_ux("Fail to get ux.\n");
 		goto err_out;
 	}
 	for (i = 0; i < num; i++) {
@@ -411,7 +411,7 @@ static int usbip_ux_unlink(struct usbip_device *ud)
 	usbip_dbg_ux("unlinking ux:%p\n", ud->ux);
 	ux = ud->ux;
 	if (ux == NULL) {
-		pr_debug("Unlink to unlinked ux.\n");
+		usbip_dbg_ux("Unlink to unlinked ux.\n");
 		return -EINVAL;
 	}
 	usbip_dbg_ux("Unlink ux sock:%d.\n", ux->sockfd);
@@ -441,7 +441,7 @@ static int usbip_ux_set_sockfd(struct usbip_ux *ux, int sockfd)
 
 	ux->tcp_socket = sockfd_lookup(sockfd, &err);
 	if (ux->tcp_socket == NULL) {
-		pr_debug("Fail to sock ptr fd:%d pid:%d\n",
+		usbip_dbg_ux("Fail to sock ptr fd:%d pid:%d\n",
 				sockfd, task_pid_nr(current));
 		return -EINVAL;
 	}

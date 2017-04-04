@@ -331,8 +331,7 @@ void usbip_break_all_connections(void)
 void usbip_break_connection(struct usbip_sock *sock UNUSED)
 {
 #ifndef USBIP_WITH_LIBUSB
-	if (sock->ux)
-		usbip_ux_interrupt((struct usbip_ux *)sock->ux);
+	usbip_ux_interrupt(sock);
 #endif
 }
 

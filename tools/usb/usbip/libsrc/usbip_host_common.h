@@ -137,18 +137,16 @@ static inline int usbip_list_devices(struct usbip_usb_device **udevs)
 	return usbip_hdriver->ops.list_devices(udevs);
 }
 
-static inline int usbip_export_device(
-			struct usbip_exported_device *edev,
-			struct usbip_sock *sock)
+static inline int usbip_export_device(struct usbip_exported_device *edev,
+				      struct usbip_sock *sock)
 {
 	if (!usbip_hdriver->ops.export_device)
 		return -1;
 	return usbip_hdriver->ops.export_device(edev, sock);
 }
 
-static inline int usbip_try_transfer(
-			struct usbip_exported_device *edev,
-			struct usbip_sock *sock)
+static inline int usbip_try_transfer(struct usbip_exported_device *edev,
+				     struct usbip_sock *sock)
 {
 	if (!usbip_hdriver->ops.try_transfer)
 		return -1;

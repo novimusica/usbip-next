@@ -145,12 +145,13 @@ static void *usbip_ux_tx(void *arg)
  * Setup user space mode.
  * Null will be set in ux if usbip_ux.ko is not installed.
  */
-static int usbip_ux_setup(struct usbip_sock *sock, struct usbip_ux **uxp)
+int usbip_ux_setup(struct usbip_sock *sock)
 {
 	struct usbip_ux *ux;
 	int fd, ret;
 
-	*uxp = NULL;
+	if (sock->ux)
+		return 0;
 
 	fd = open(DEVNAME, O_RDWR);
 	if (fd < 0) {
@@ -179,7 +180,6 @@ static int usbip_ux_setup(struct usbip_sock *sock, struct usbip_ux **uxp)
 	}
 	dbg("successfully prepared userspace transmission sock:%s ux:%s pid:%d",
 		 ux->kaddr.sock, ux->kaddr.ux, getpid());
-	*uxp = ux;
 
 	return 0;
 err_free:
@@ -192,21 +192,24 @@ err_close:
 /*
  * Only for error handling before start.
  */
-static void usbip_ux_cleanup(struct usbip_ux **ux)
+void usbip_ux_cleanup(struct usbip_sock *sock)
 {
-	if (*ux == NULL)
+	struct usbip_ux *ux = sock->ux;
+
+	if (ux == NULL)
 		return;
 
-	close((*ux)->devfd);
-	free(*ux);
-	*ux = NULL;
+	close((ux)->devfd);
+	free(ux);
+	sock->ux = NULL;
 }
 
 /*
  * Starts transmission threads.
  */
-static int usbip_ux_start(struct usbip_ux *ux)
+static int usbip_ux_start(struct usbip_sock *sock)
 {
+	struct usbip_ux *ux = sock->ux;
 	int ret;
 
 	if (ux == NULL)
@@ -237,8 +240,10 @@ err:
  * 2) Broken connection
  * 3) Closed usbip-ux device
  */
-static void usbip_ux_join(struct usbip_ux *ux)
+static void usbip_ux_join(struct usbip_sock *sock)
 {
+	struct usbip_ux *ux = sock->ux;
+
 	if (ux == NULL)
 		return;
 
@@ -249,23 +254,18 @@ static void usbip_ux_join(struct usbip_ux *ux)
 
 int usbip_ux_try_transfer(struct usbip_sock *sock)
 {
-	struct usbip_ux *ux = sock->ux;
-
-	if (usbip_ux_setup(sock, &ux))
+	if (usbip_ux_setup(sock))
 		return -1;
-
-	if (ux != NULL) {
-		usbip_ux_start(ux);
-		usbip_ux_join(ux);
-	}
-
-	usbip_ux_cleanup(&ux);
-
+	usbip_ux_start(sock);
+	usbip_ux_join(sock);
+	usbip_ux_cleanup(sock);
 	return 0;
 }
 
-void usbip_ux_interrupt(struct usbip_ux *ux)
+void usbip_ux_interrupt(struct usbip_sock *sock)
 {
+	struct usbip_ux *ux = sock->ux;
+
 	if (ux == NULL)
 		return;
 	ioctl((ux)->devfd, USBIP_UX_IOCINTR);
