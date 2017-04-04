@@ -3,8 +3,8 @@
 CMD=`basename $0`
 WHICH=$1
 
-if [ "$WHICH" != "all" -a
-	"$WHICH" != "driver" -a
+if [ "$WHICH" != "all" -a \
+	"$WHICH" != "driver" -a \
 	"$WHICH" != "libusb" ]; then
 	echo "usage: $CMD [all|driver|libusb]"
 	exit 0
