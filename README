@@ -50,7 +50,8 @@ An advanced USB/IP including features:
 
 3. Cross platform device side node
 
-    It adds porting of USB/IP device side command and daemon with libusb instead    of stub driver. It allows to port device side node to other operation
+    It adds porting of USB/IP device side command and daemon with libusb instead
+    of stub driver. It allows to port device side node to other operation
     systems which are supported by libusb.
 
     tools/usb/usbip
