@@ -1,0 +1,109 @@
+An advanced USB/IP including features:
+
+1. Exporting device
+
+    It allows to connect from device side. Many devices can be connected to
+    remote with plug-and-play manner. 
+
+    EXISTING) - invites devices from application(vhci)-side
+             +------+                               +------------------+
+     device--+ STUB |                               | application/VHCI |
+             +------+                               +------------------+
+     1) # usbipd ... start daemon
+     = = =
+     2) # usbip list --local
+     3) # usbip bind
+                      <--- list bound devices ---  4) # usbip list --remote
+                      <--- import a device ------  5) # usbip attach
+     = = =
+                         X disconnected            6) # usbip detach
+     7) usbip unbind
+
+    NEW) - dedicates devices from device(stub)-side
+             +------+                               +------------------+
+     device--+ STUB |                               | application/VHCI |
+             +------+                               +------------------+
+                                                   1) # usbipa ... start daemon
+     = = =
+     2) # usbip list --local
+     3) # usbip connect    --- export a device ------>
+     = = =
+     4) # usbip disconnect --- un-export a device --->
+
+     You can add allow/deny rules with TCP wrappers (./configure
+     --with-tcp-wrappers) and/or udev rules.
+
+2. VHCI number of ports extension
+
+    It extends number of ports limitaion in application (vhci) side by
+    multiplying number of VHCI.
+
+    Driver portion of static extension has been merged at 4.9-rc1. Userspace
+    tools and dynamic extenstion are added.
+
+    USBIP_VHCI_HC_PORTS:
+        Number of ports per USB/IP virtual host controller. The default is 8.
+    USBIP_VHCI_MAX_HCS:
+        Maximum number of USB/IP virtual host controllers. The default is 1.
+    USBIP_VHCI_INIT_HCS:
+        Initial number of USB/IP virtual host controllers. The default is 1.
+
+3. Cross platform device side node
+
+    It adds porting of USB/IP device side command and daemon with libusb instead    of stub driver. It allows to port device side node to other operation
+    systems which are supported by libusb.
+
+    tools/usb/usbip
+    +-- src: command and daemon
+    +-- libsrc: common, host driver interface and vhci driver interface
+    +-- doc: manuals
+    +-- libusb : implementation with libusb (newly added)
+        +-- src: makes ../../src objects without stub driver dependent
+        |        code giving -DUSBIP_WITH_LIBUSB.
+        +-- libsrc: makes ../../libsrc objects giving -DUSBIP_WITH_LIBUSB.
+        |   +-- dummy_device_driver.c : dummy host device driver
+        +-- stub: stub driver emulation library with libusb.
+        +-- os: OS dependent code.
+        |   +-- unix: unix dependent code used in libusb.
+        |   +-- win32: Win32 dependent cocde.
+        +-- doc: manuals
+
+    Make
+        in tools/usb/usbip : original with stub driver
+        in tools/usb/usbip/libusb : new with stub emulator with libusb
+            ./configure --with-dummy-driver applies dummy host device driver
+            instead of vUDC.
+
+    Binary names
+        usbip: command with stub/vhci driver (original)
+        usbipd, usbipa: daemons with stub/vhci driver (original)
+        libusbip: command with stub emulator (new)
+        libusbipd: daemon with stub emulator (new)
+
+4. API to add arbitrary network protocol
+
+    It introduces userspace API to add network protocols to USB/IP. The API
+    allows to program to wrap USB/IP with arbitrary network protocol using
+    network protocol library, for example, libwebsockets or Poco C++ for
+    WebSocket.
+
+    The detail of the API is written as manual pages.
+    
+    The shared libraries below are created.
+        libusbip.so : common, as same as original
+        libusbipc.so : for commands
+        libusbipd.so : for device side daemon
+        libusbipa.so : for application side daemon
+    Device side libraries with libub are created by build at
+    tools/usb/usbip/libusb.
+        libusbip_libusb.so : common
+        libusbip_stub.so : stub emulator with libusb
+        libusdipc_libusb.so : for device side commands
+        libusbipd_libusb.so : for device side daemon
+
+    A simple example for USB/IP API using IPv4 socket is included. USB over
+    WebSocket using OSSs are stored in github below.
+        with Poco C++ : https://github.com/novimusica/usbws-poco
+        with libwebsockets : https://github.com/novimusica/usbws-lws
+
+//
