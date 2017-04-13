@@ -76,7 +76,8 @@ An advanced USB/IP including features:
 
     Binary names
         usbip: command with stub/vhci driver (original)
-        usbipd, usbipa: daemons with stub/vhci driver (original)
+        usbipd: daemon with vhci driver (original)
+	usbipa: daemon with stub driver (new as 1)
         libusbip: command with stub emulator (new)
         libusbipd: daemon with stub emulator (new)
 
@@ -88,7 +89,7 @@ An advanced USB/IP including features:
     WebSocket.
 
     The detail of the API is written as manual pages.
-    
+
     The shared libraries below are created.
         libusbip.so : common, as same as original
         libusbipc.so : for commands
@@ -101,6 +102,12 @@ An advanced USB/IP including features:
         libusdipc_libusb.so : for device side commands
         libusbipd_libusb.so : for device side daemon
 
+    To enable the API, a driver to forward packets to userspace should be
+    loaded.
+        # modprobe usbip-host (original, device side)
+        # modprobe vhci-hcd (original, application side)
+        # modprobe usbip-ux (new, both device and application side)
+ 
     A simple example for USB/IP API using IPv4 socket is included. USB over
     WebSocket using OSSs are stored in github below.
         with Poco C++ : https://github.com/novimusica/usbws-poco
